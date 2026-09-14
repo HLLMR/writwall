@@ -1402,3 +1402,21 @@ log SHA-256 is
 `AE6485A2353183917397219801F8443871FE6ED59F0C3CEE27F3D8B6EAE11D85`.
 No denied mutation succeeded; the authorized coordinator later performed the
 remote relink outside the Implementer's active grant.
+
+## WO-WW-027 session-local evidence — 2026-09-14 (post-pilot)
+
+Session `b6a02b70-972b-4bbd-a27e-c7d020270901`, native Windows Sonnet:
+
+| Records | Classification | Accounting |
+|---|---|---|
+| 330-333 | Four Bash work attempts, `control_plane_channel_uninspectable` | Real 9.2.1 post-pilot denials; not relabeled probes |
+| 334 | First Write to the authorized excluded canary, `write_target_out_of_grant` | Deliberate canary, excluded from ordinary-denial count |
+
+The canary target remains absent. The original 329 records (115233 bytes)
+retain SHA-256 `5dba70f7d7263ecd10ecb2c18867b6c2c5870a3e001c25c7797d3d61feae680a`.
+The 334-record log (117147 bytes) hashes
+`2511dabaa26521cf6d07ac04e8a5886348e8ef1cb6d64ba46598f97f89eacdcb`.
+Provider tool-event order attributes one append to the canary; no separate
+333-record snapshot was captured. Forensics were coordinator-verified, not
+computed by the Implementer whose shell calls were denied. No log bytes were
+rewritten and no whole-surface enforcement claim changes.

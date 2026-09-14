@@ -2,6 +2,34 @@
 
 # STATE — Writwall
 
+## Latest bounded checkpoint — 2026-09-14, WO-WW-027
+
+**OBSERVED:** Owner accepted WO-WW-027, including disclosed deviations; active
+minutes NOT REPORTED. Approval-continuity source, installed-output checks and
+three static handoffs are synchronized. Windows affected suites: 120 tests, OK,
+two symlink-privilege skips; Ubuntu: 120 tests, OK, no skips. Fresh read-only
+Sonnet conformance review: PASS; ten synthetic scenarios passed. The seven-file
+implementation/test/documentation ledger remained unchanged through final review.
+
+Denial records 330-333 are four real Bash work-attempt denials; 334 is the excluded
+Write canary. No denied mutation succeeded; the original 329-record byte prefix
+is intact. All eight declared surfaces remain unenforced under the strict metric.
+Setup, routing/read-boundary and wrapper deviations remain in the accepted report.
+
+This is a post-pilot order, not an eleventh counted pilot item. Its work order,
+report, lifecycle and closeout brief are retained in `governance/history/`.
+Ordinary closeout and one private commit are authorized. Public delivery of this
+change is not yet performed. The active pointer is absent; live work-order and
+report directories contain only their .gitkeep files. The accepted report was
+retired byte-identically. No successor is active. Public delivery of this
+change and issue 35 closure are not authorized; issues 36-38 remain proposals.
+No external project is changed. No new interpretation or empirical cost claim
+is added. Older release/issue status passages below retain their dated snapshot
+context and are not a current verification of GitHub state.
+
+Evidence: `governance/history/WO-WW-027-report.md` (private governed-source reference, not present in this candidate) and
+`governance/history/WO-WW-027-issuance-lifecycle.md` (private governed-source reference, not present in this candidate).
+
 As-is, not should-be. Ratified intent lives in `governance/PLAN.md`; this file
 records the repository state observed after the Plumbline 0.8 public release,
 accepted WO-PL-034 public-front-door polish, accepted WO-PL-035 onboarding

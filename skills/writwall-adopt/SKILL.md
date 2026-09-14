@@ -270,11 +270,47 @@ with a concise Recommendation and material tradeoff; keep the detailed packet be
 supporting evidence rather than the conversational front door. When the next safe mechanical
 action is available, ask once for one combined disposition and action. If that action uses a new
 user-owned task, explicitly include creation and dispatch of the named task in that approval
-request; never infer task-creation permission afterward. Once approved, perform every
+request; never infer task-creation permission afterward. Carry that approval's continuity in the
+shared Authorization section below, transcribed from an already-authorized current record rather
+than retyped or re-approved by the Owner.
+
+## Authorization
+
+- Approval source/reference: unknown: not yet transcribed from an already-authorized record
+- Approved action: unknown: not yet transcribed from an already-authorized record
+- Exact scope: unknown: not yet transcribed from an already-authorized record
+- Exclusions: unknown: not yet transcribed from an already-authorized record
+- Delegation permission: unknown: not yet transcribed from an already-authorized record
+- Lifecycle conditions: unknown: not yet transcribed from an already-authorized record
+- Completion boundary: unknown: not yet transcribed from an already-authorized record
+
+This section carries forward evidence of a decision already made elsewhere;
+it is not itself a decision, and it never substitutes for an independent
+provider authorization. A field populated above transcribes that
+already-authorized record's own reference and wording; the human Owner never
+retypes or re-approves it. A field left unknown above means the preparer has
+not yet located it in an already-authorized current record; the preparer
+inspects those records before asking anyone. Only a genuinely missing, materially necessary decision is a question for the Owner; the absence of optional or formal metadata is not itself an approval loop, and an existing valid legacy approval remains usable without new paperwork.
+
+Matching current approval: performs the already-authorized action once the provider itself permits it.
+Missing approval: says plainly that authorization is missing and stops.
+Explicit revocation or supersession: treats a revoked or superseded record as no longer authorizing anything.
+Requested action beyond scope: performs only the authorized part and names the excess as unauthorized.
+Independent provider denial: reports the provider's own denial as the exact blocker.
+Environment prerequisite failure: names the exact missing or failed environment prerequisite as the blocker.
+Unapproved task creation or data transmission: never creates or transmits a task, message, or dataset outside the approved action.
+
+Once approved, perform every
 mechanically available authorized step. Do not ask for the same decision again. The human Owner
 alone ratifies intent and activates work; preserve a distinct fresh Reviewer after
 implementation. The onboarding coordinator stops here and does not continue into project work.
 ```
+
+The Authorization section above is filled in by the General itself from
+already-approved current records, or an equivalent legacy record's existing
+scope and authority; the Owner is never asked to retype or re-approve values
+that already exist, and a blank field alone is not a new approval service or
+a performance claim.
 
 ## Migration mode
 

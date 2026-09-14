@@ -51,6 +51,29 @@ REQUIRED_HANDOFF_PATHS = (
 )
 MAX_RELEASE_METADATA_BYTES = 1024 * 1024
 
+# Kept byte-for-byte identical to scripts/start_writwall.py's
+# authorization_continuity_block() field labels and B.3.4 outcome sentences.
+# This installed-output gate proves the actual emitted contract, not a
+# semantic authorization parser or a claim of independent provider proof.
+AUTHORIZATION_CONTINUITY_LABELS = (
+    "Approval source/reference:",
+    "Approved action:",
+    "Exact scope:",
+    "Exclusions:",
+    "Delegation permission:",
+    "Lifecycle conditions:",
+    "Completion boundary:",
+)
+AUTHORIZATION_CONTINUITY_OUTCOMES = (
+    "performs the already-authorized action once the provider itself permits it",
+    "says plainly that authorization is missing and stops",
+    "treats a revoked or superseded record as no longer authorizing anything",
+    "performs only the authorized part and names the excess as unauthorized",
+    "reports the provider's own denial as the exact blocker",
+    "names the exact missing or failed environment prerequisite as the blocker",
+    "never creates or transmits a task, message, or dataset outside the approved action",
+)
+
 
 class ReleaseCheckError(RuntimeError):
     """A bounded, user-facing release-candidate failure."""
@@ -289,6 +312,25 @@ def python_bytecode_residue(root: Path) -> list[str]:
     )
 
 
+def verify_authorization_continuity_content(text: str, surface: str) -> None:
+    """Require every B.3.3 field label and B.3.4 outcome sentence verbatim.
+
+    A missing item names the surface and the exact missing text; this is a
+    content presence check against the one shared generator, never a
+    semantic parser and never proof of independent provider enforcement.
+    """
+    missing = [
+        item
+        for item in (*AUTHORIZATION_CONTINUITY_LABELS, *AUTHORIZATION_CONTINUITY_OUTCOMES)
+        if item not in text
+    ]
+    if missing:
+        raise ReleaseCheckError(
+            f"authorization-continuity content missing in {surface}: "
+            + "; ".join(missing)
+        )
+
+
 def check_candidate(candidate: Path, expected_tag: str) -> None:
     candidate = candidate.resolve()
     if not candidate.is_dir():
@@ -456,6 +498,7 @@ def check_candidate(candidate: Path, expected_tag: str) -> None:
                 "--environment", "disposable local external project",
                 "--owner-time", "no",
                 "--confirm-no-secrets",
+                "--external-operator", "Synthetic release-check function",
             ],
             cwd=workspace,
             environment=environment,
@@ -473,6 +516,22 @@ def check_candidate(candidate: Path, expected_tag: str) -> None:
             raise ReleaseCheckError(
                 "complete handoff contains Python bytecode residue: "
                 + ", ".join(residue)
+            )
+        for relative in ("GENERAL.md", "OPERATOR.md", "REPOSITORY-OPERATOR.md"):
+            verify_authorization_continuity_content(
+                (output / relative).read_text(encoding="utf-8"),
+                f"installed {relative}",
+            )
+        operator_packets = sorted((output / "operations").glob("*.md"))
+        if not operator_packets:
+            raise ReleaseCheckError(
+                "installed coordinator run produced no external Operator packet "
+                "for the requested synthetic function"
+            )
+        for packet_path in operator_packets:
+            verify_authorization_continuity_content(
+                packet_path.read_text(encoding="utf-8"),
+                f"installed external Operator packet {packet_path.name}",
             )
 
         intake_payload = json.loads(
@@ -525,6 +584,9 @@ def check_candidate(candidate: Path, expected_tag: str) -> None:
                 "installed adopted-lockout route omitted: "
                 + ", ".join(missing_route_text)
             )
+        verify_authorization_continuity_content(
+            adopted_result.stdout, "installed adopted-lockout start output (General)"
+        )
         if (adopted / ".writwall-bootstrap").exists():
             raise ReleaseCheckError(
                 "installed adopted-lockout route published a bootstrap"
@@ -560,6 +622,22 @@ def check_candidate(candidate: Path, expected_tag: str) -> None:
         if tree_digest(adopted) != adopted_before:
             raise ReleaseCheckError(
                 "installed inspect route changed target bytes"
+            )
+        inspect_general_result = run(
+            [
+                str(command), "inspect", "--project-root", str(adopted),
+                "--role", "general",
+            ],
+            cwd=workspace,
+            environment=environment,
+            label="installed inspect general route",
+        )
+        verify_authorization_continuity_content(
+            inspect_general_result.stdout, "installed inspect --role general output"
+        )
+        if tree_digest(adopted) != adopted_before:
+            raise ReleaseCheckError(
+                "installed inspect general route changed target bytes"
             )
 
         retired = workspace / "retired-project"
@@ -717,6 +795,9 @@ def check_candidate(candidate: Path, expected_tag: str) -> None:
     print("                      path fails closed; zero target-byte change")
     print("  nested worktree   : installed coordinator stops with a worktree diagnostic")
     print("  candidate unchanged: complete-tree digest preserved")
+    print("  authorization contract: GENERAL/OPERATOR/REPOSITORY-OPERATOR, the "
+          "external Operator packet, and General inspect output all carry the "
+          "required authorization-continuity labels and outcome sentences")
 
 
 def parser() -> argparse.ArgumentParser:

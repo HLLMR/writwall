@@ -1075,6 +1075,39 @@ whitespace gates passed on the same final record bytes.
 
 ## Column definitions
 
+### Post-pilot WO-WW-027 completed record — 2026-09-14
+
+Owner ACCEPT including disclosed deviations; active minutes NOT REPORTED.
+The original ten-order pilot totals are unchanged.
+
+- 9.2.1: four real work-attempt Bash denials (330-333), zero successful denied
+  mutations. Record 334 is the excluded first-Write canary, not ordinary work.
+- 9.2.2: zero numbered RFIs opened. Public issue 35 is the existing scope;
+  issues 36-38 are proposals, not activated successors.
+- 9.2.3: aggregate drift count NOT MEASURED. The report retains initial REDs,
+  failed first GREEN, record corrections, late routing reads and read-boundary
+  departure; no retroactive numeric drift total is invented.
+- 9.2.4: zero formal Reviewer-return rework cycles; one native Sonnet
+  implementation session and one distinct native Sonnet Reviewer session.
+  Continuations reused those IDs. Coordinator orchestration and record
+  corrections are disclosed, not disguised as new independent reviews.
+  Zero closed artifacts retrieved to reconstruct intent.
+- 9.2.5: activation corpus/gap/orphan measurements NOT MEASURED; no reconstruction.
+- 9.2.6: 8 declared / 0 wholly enforced / 8 unenforced-by-declaration. Successful
+  Write-canary denial is channel-local evidence only; closeout is Owner-directed
+  coordinator recording, not transferable native-wall evidence.
+- 9.2.7: mandatory Owner-reading word total NOT MEASURED. The final result and
+  linked report preceded acceptance; the formal brief is a retrospective
+  coordinator transcription, not a claim of a separate pre-acceptance brief.
+- 9.2.8: N/A for a qualified experimental instrument. Ten synthetic Reviewer
+  scenarios passed; they establish neither live agent behavior nor cost reduction.
+
+Final affected suites: Windows 120 tests OK, two symlink-privilege skips;
+Ubuntu 120 OK without skips, including real installed-wheel gates. Fresh
+Sonnet conformance PASS. Two non-blocking observations remain future candidates,
+not new work: explicitly naming pending conditions and maintaining independent
+checker expectation strings. No release, push or other-project work is implied.
+
 ### Post-pilot WO-WW-026 completed record
 
 Owner ACCEPT on 2026-09-04, including Amendment 1 and disclosed diagnostics;

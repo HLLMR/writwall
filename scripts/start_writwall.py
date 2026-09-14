@@ -31,7 +31,69 @@ SECRET_WARNING = (
     "record values, or other secrets. This tool writes your answers as plain "
     "text inside the target project."
 )
-GENERAL_PROMPT = """Act as a fresh General for this already-adopted project's continuity. Begin
+_AUTHORIZATION_UNKNOWN = "unknown: not yet transcribed from an already-authorized record"
+
+
+def authorization_continuity_block(
+    *,
+    approval_source: str | None = None,
+    approved_action: str | None = None,
+    exact_scope: str | None = None,
+    exclusions: str | None = None,
+    delegation_permission: str | None = None,
+    lifecycle_conditions: str | None = None,
+    completion_boundary: str | None = None,
+) -> str:
+    """Render the one shared Authorization section for every generated handoff.
+
+    A field carries an already-authorized record's own reference and wording
+    when the preparer supplies one, including an equivalent legacy record's
+    existing scope and stated authority transcribed verbatim; the human Owner
+    never retypes or re-approves it. A field left unset renders as explicitly
+    unknown rather than a fabricated value: that means the preparer has not
+    yet located it in an already-authorized current record, not that no such
+    record exists, and the preparer inspects those records before asking
+    anyone. Only a field genuinely missing from every authorized record is a
+    question for the Owner; a blank field alone never invalidates existing
+    adoption or authority. This function performs no natural-language
+    parsing; a caller supplies each value only from a record it has already
+    read.
+    """
+    fields = (
+        ("Approval source/reference", approval_source),
+        ("Approved action", approved_action),
+        ("Exact scope", exact_scope),
+        ("Exclusions", exclusions),
+        ("Delegation permission", delegation_permission),
+        ("Lifecycle conditions", lifecycle_conditions),
+        ("Completion boundary", completion_boundary),
+    )
+    lines = "\n".join(
+        f"- {label}: {value if value else _AUTHORIZATION_UNKNOWN}"
+        for label, value in fields
+    )
+    return f"""## Authorization
+
+{lines}
+
+This section carries forward evidence of a decision already made elsewhere;
+it is not itself a decision, and it never substitutes for an independent
+provider authorization. A field populated above transcribes that
+already-authorized record's own reference and wording; the human Owner never
+retypes or re-approves it. A field left unknown above means the preparer has
+not yet located it in an already-authorized current record; the preparer
+inspects those records before asking anyone. Only a genuinely missing, materially necessary decision is a question for the Owner; the absence of optional or formal metadata is not itself an approval loop, and an existing valid legacy approval remains usable without new paperwork.
+
+Matching current approval: performs the already-authorized action once the provider itself permits it.
+Missing approval: says plainly that authorization is missing and stops.
+Explicit revocation or supersession: treats a revoked or superseded record as no longer authorizing anything.
+Requested action beyond scope: performs only the authorized part and names the excess as unauthorized.
+Independent provider denial: reports the provider's own denial as the exact blocker.
+Environment prerequisite failure: names the exact missing or failed environment prerequisite as the blocker.
+Unapproved task creation or data transmission: never creates or transmits a task, message, or dataset outside the approved action."""
+
+
+GENERAL_PROMPT = f"""Act as a fresh General for this already-adopted project's continuity. Begin
 read-only and verify the lifecycle from repository bytes rather than prior chat. Read the
 charter, Plan, State, Routing, ratified adoption record, and open transactional records. State
 the project's next decision plainly. Prepare, but do not activate, the smallest genuine work
@@ -41,7 +103,13 @@ with a concise Recommendation and material tradeoff; keep the detailed packet be
 supporting evidence rather than the conversational front door. When the next safe mechanical
 action is available, ask once for one combined disposition and action. If that action uses a new
 user-owned task, explicitly include creation and dispatch of the named task in that approval
-request; never infer task-creation permission afterward. Once approved, perform every
+request; never infer task-creation permission afterward. Carry that approval's continuity in the
+shared Authorization section below, transcribed from an already-authorized current record rather
+than retyped or re-approved by the Owner.
+
+{authorization_continuity_block()}
+
+Once approved, perform every
 mechanically available authorized step. Do not ask for the same decision again. The human Owner
 alone ratifies intent and activates work; preserve a distinct fresh Reviewer after
 implementation. The onboarding coordinator stops here and does not continue into project work."""
@@ -682,6 +750,8 @@ The Architect or General prepares it from ratified intent; the named Operator
 executes only the completed packet and returns evidence.
 
 {_external_operator_root_block(canonical)}
+{authorization_continuity_block()}
+
 ## Preconditions
 
 - [ ] Identify the exact system, account boundary, and observed baseline.
@@ -1347,6 +1417,8 @@ Paste exactly into the preferred frontier session:
 
 {common}
 {root_block}
+{authorization_continuity_block()}
+
 ## Preconditions
 - An Owner-ratified plan and active bounded work order exist.
 ## Permitted actions
@@ -1386,6 +1458,8 @@ This is a compatibility alias for the **Operator** role packet
 (`OPERATOR.md`), kept for existing `REPOSITORY-OPERATOR.md` consumers. New
 integrations should read `OPERATOR.md` directly; both describe the same
 Operator role.
+
+{authorization_continuity_block()}
 
 ## Preconditions
 - An Owner-ratified plan and active bounded work order exist.

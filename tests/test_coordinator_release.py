@@ -215,6 +215,60 @@ class CoordinatorReleaseTests(unittest.TestCase):
             result.stdout + result.stderr,
         )
 
+    def test_installed_release_gate_catches_missing_authorization_continuity_label(self):
+        candidate = self.make_candidate()
+        start = candidate / "scripts" / "start_writwall.py"
+        original = start.read_text(encoding="utf-8")
+        self.assertIn(
+            '("Approval source/reference", approval_source),', original
+        )
+        start.write_text(
+            original.replace(
+                '("Approval source/reference", approval_source),',
+                '("Approval source", approval_source),',
+            ),
+            encoding="utf-8",
+            newline="\n",
+        )
+        before = tree_digest(candidate)
+        result = self.run_checker(candidate)
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(
+            "authorization-continuity content missing",
+            result.stdout + result.stderr,
+        )
+        self.assertIn("Approval source/reference", result.stdout + result.stderr)
+        self.assertEqual(tree_digest(candidate), before)
+
+    def test_installed_release_gate_catches_missing_authorization_outcome_guidance(self):
+        candidate = self.make_candidate()
+        start = candidate / "scripts" / "start_writwall.py"
+        original = start.read_text(encoding="utf-8")
+        self.assertIn(
+            "Missing approval: says plainly that authorization is missing and stops.",
+            original,
+        )
+        start.write_text(
+            original.replace(
+                "Missing approval: says plainly that authorization is missing and stops.",
+                "Missing approval: proceeds anyway.",
+            ),
+            encoding="utf-8",
+            newline="\n",
+        )
+        before = tree_digest(candidate)
+        result = self.run_checker(candidate)
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(
+            "authorization-continuity content missing",
+            result.stdout + result.stderr,
+        )
+        self.assertIn(
+            "says plainly that authorization is missing and stops",
+            result.stdout + result.stderr,
+        )
+        self.assertEqual(tree_digest(candidate), before)
+
     def test_installed_help_mismatch_fails_with_diagnostic(self):
         candidate = self.make_candidate()
         entry = candidate / "writwall_cli" / "__main__.py"
