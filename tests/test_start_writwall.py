@@ -1294,6 +1294,147 @@ class StartWritwallTests(unittest.TestCase):
                 self.assertIn(heading, text)
             self.assertIn("confers no authority", text)
 
+    def test_external_operator_packet_states_authorization_continuity_fields(self):
+        packet = starter_module.operation_packet("Example function", "/example/project")
+        self.assertIn("## Authorization", packet)
+        for label in (
+            "Approval source/reference:",
+            "Approved action:",
+            "Exact scope:",
+            "Exclusions:",
+            "Delegation permission:",
+            "Lifecycle conditions:",
+            "Completion boundary:",
+        ):
+            self.assertIn(label, packet)
+        self.assertIn("evidence of a decision", packet)
+        self.assertIn("not itself a decision", packet)
+
+    def test_repository_role_handoffs_state_authorization_continuity_fields(self):
+        """Table-driven: the same source/scope/delegation/conditions/completion
+        contract used by the external Operator packet must also reach
+        generated repository General and repository-Operator handoffs,
+        including the zero-write adopted inspect route. Stable field labels
+        are the emitted interface; prose around them is not asserted."""
+        labels = (
+            "Approval source/reference:",
+            "Approved action:",
+            "Exact scope:",
+            "Exclusions:",
+            "Delegation permission:",
+            "Lifecycle conditions:",
+            "Completion boundary:",
+        )
+
+        with self.subTest(surface="GENERAL_PROMPT constant"):
+            for label in labels:
+                self.assertIn(label, starter_module.GENERAL_PROMPT)
+
+        packets = starter_module.architect_packets(
+            SimpleNamespace(), (), "/example/project"
+        )
+        for packet_name in ("GENERAL.md", "OPERATOR.md", "REPOSITORY-OPERATOR.md"):
+            with self.subTest(surface=f"architect_packets {packet_name}"):
+                for label in labels:
+                    self.assertIn(label, packets[packet_name])
+
+        with self.subTest(surface="adopted zero-write inspect route (general role)"):
+            governance = self.project / "governance"
+            governance.mkdir()
+            for name in ("PLAN.md", "STATE.md", "ROUTING.md"):
+                (governance / name).write_text(f"# {name}\n", encoding="utf-8")
+            decision = governance / "decisions" / "DR-001.md"
+            decision.parent.mkdir()
+            decision.write_text(ratified_adoption_record(), encoding="utf-8")
+            before = self.tree_snapshot(self.project)
+            result = self.run_inspect("general")
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(self.tree_snapshot(self.project), before)
+            for label in labels:
+                self.assertIn(label, result.stdout)
+
+    def test_authorization_continuity_block_preserves_supplied_values_without_inventing_others(self):
+        block = starter_module.authorization_continuity_block(
+            approval_source="governance/decisions/DR-005.md",
+            approved_action="Publish the v0.11.0 release archive.",
+        )
+        self.assertIn(
+            "Approval source/reference: governance/decisions/DR-005.md", block
+        )
+        self.assertIn(
+            "Approved action: Publish the v0.11.0 release archive.", block
+        )
+        for label in (
+            "Exact scope", "Exclusions", "Delegation permission",
+            "Lifecycle conditions", "Completion boundary",
+        ):
+            self.assertIn(
+                f"{label}: {starter_module._AUTHORIZATION_UNKNOWN}", block
+            )
+
+    def test_generated_guidance_covers_b34_authorization_outcomes(self):
+        """Table-driven: repository General guidance and the external Operator
+        packet must each give distinguishing instruction for every B.3.4
+        authorization outcome, not a generic keyword shared across cases.
+        This is prose guidance for a reasoning agent, not a claim that the
+        generator itself parses or validates arbitrary prose decisions."""
+        cases = (
+            (
+                "matching current approval",
+                "performs the already-authorized action once the provider itself permits it",
+            ),
+            (
+                "missing approval",
+                "says plainly that authorization is missing and stops",
+            ),
+            (
+                "explicit revocation or supersession",
+                "treats a revoked or superseded record as no longer authorizing anything",
+            ),
+            (
+                "requested action beyond scope",
+                "performs only the authorized part and names the excess as unauthorized",
+            ),
+            (
+                "independent provider denial",
+                "reports the provider's own denial as the exact blocker",
+            ),
+            (
+                "environment prerequisite failure",
+                "names the exact missing or failed environment prerequisite as the blocker",
+            ),
+            (
+                "unapproved task creation or data transmission",
+                "never creates or transmits a task, message, or dataset outside the approved action",
+            ),
+        )
+        surfaces = {
+            "GENERAL_PROMPT": starter_module.GENERAL_PROMPT,
+            "external operation_packet": starter_module.operation_packet(
+                "Example function", "/example/project"
+            ),
+        }
+        for surface_name, text in surfaces.items():
+            for outcome, expected_guidance in cases:
+                with self.subTest(surface=surface_name, outcome=outcome):
+                    self.assertIn(expected_guidance, text)
+
+    def test_static_general_prompt_docs_stay_normalized_equal_to_generated_prompt(self):
+        """Retrospective regression (WO-WW-027): the three static GENERAL_PROMPT
+        copies (START-HERE.md, ADOPTING.md, skills/writwall-adopt/SKILL.md) must
+        each carry the exact generated prompt text, whitespace-normalized, so a
+        future change to the shared renderer cannot silently desync the docs.
+        This does not weaken or alter GENERAL_PROMPT itself; it only pins the
+        static copies to whatever it currently says."""
+        normalized_prompt = " ".join(starter_module.GENERAL_PROMPT.split())
+        for relative in (
+            "START-HERE.md", "ADOPTING.md", "skills/writwall-adopt/SKILL.md",
+        ):
+            with self.subTest(document=relative):
+                text = (REPO_ROOT / relative).read_text(encoding="utf-8")
+                normalized_text = " ".join(text.split())
+                self.assertIn(normalized_prompt, normalized_text)
+
     def test_dns_mail_scenario_is_split_without_real_values(self):
         result = self.run_start("--scenario", "dns-mail-migration")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

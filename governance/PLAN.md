@@ -844,3 +844,23 @@ Independent implementation and record reviews returned ACCEPT. Owner active
 minutes: NOT REPORTED. Resume the authorized post-closeout projections, fresh
 publication review, protected-CI PR/merge, immutable v0.11.0 release, and pilot
 handoffs; external project mutation is not part of this closeout.
+
+## 32. Scoped authorization continuity — 2026-09-14
+
+Owner ratification: "Approved, proceed", recorded before materialization in
+`governance/history/WO-WW-027-issuance-lifecycle.md` (private governed-source reference, not present in this candidate).
+
+Queue one bounded correction to existing approval-continuity guidance: preserve
+and expose the source, limits and delegation scope of an already-approved
+action in generated handoffs. Distinguish missing Owner decisions from provider
+permission failures. Do not create an authority service, expand delegation,
+amend Doctrine, or promise mechanical control over agent conversation. Issues
+36-38 remain proposals, not authorized implementation successors.
+
+**WO-WW-027 COMPLETE, accepted 2026-09-14**, including the disclosed deviations.
+Generated handoffs now carry scoped approval evidence and distinguish missing
+authority from provider/environment blockers. Native Windows affected gates ran
+120 tests with two symlink-privilege skips; Ubuntu ran all 120. Fresh Sonnet
+conformance review passed with ten passing synthetic scenarios. No real-world
+operating-cost improvement is claimed. Closeout permits one private commit;
+issue 35 remains open until a separately authorized public delivery.
