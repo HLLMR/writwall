@@ -94,19 +94,19 @@
     {
       "path": "governance/LOG.md",
       "context": "historical_pilot_summary",
-      "sha256": "296a97522e331edb71f53cbae4e86bc35560df501e4a020eb1547899fe29a3b2",
+      "sha256": "df8494a2e64ece23bd0193e0e6f36071fe2e5cf3ab712d979032caee7a863033",
       "projection_transform": "private_evidence_redaction"
     },
     {
       "path": "governance/PLAN.md",
       "context": "ratified_historical_intent",
-      "sha256": "e27b792bf3e315ef24f97a35b7463fd788de6692657b123384f62d5c720f64d2"
+      "sha256": "5e2f55680cf899a778c245351f4bb76fcd8c021173579c324d8acc9b62f3b5cf"
     },
     {
       "path": "governance/STATE.md",
       "context": "mixed_current_state_and_history",
-      "sha256": "003319f2acd3b058a2af2601bee35a62423a26a57390de08955f3c859c770011",
-      "projection_sha256": "ab7aaa8c93e41907b1c7e5767c5b2fcbbd1c15471cd747f54e9b695b25da283a"
+      "sha256": "59413ee5716689961b15dc131e0e44b06eb67b5c4a60743e24b0e571100c751e",
+      "projection_sha256": "8683febbbe2ebf778c6c47d21e1791be7768746418f2b32ecd8f705b66c68296"
     },
     {
       "path": "governance/decisions/DR-001.md",

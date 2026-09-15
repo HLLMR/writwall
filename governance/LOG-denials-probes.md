@@ -1420,3 +1420,19 @@ Provider tool-event order attributes one append to the canary; no separate
 333-record snapshot was captured. Forensics were coordinator-verified, not
 computed by the Implementer whose shell calls were denied. No log bytes were
 rewritten and no whole-surface enforcement claim changes.
+
+## WO-WW-028 session-local evidence — 2026-09-15 (post-pilot)
+
+Record 335 is the first-Write canary, `write_target_out_of_grant`, session
+`2d8998a7-eab0-46fc-a965-01876fe2b1dd`; excluded from ordinary denial totals.
+The named target remains absent. Records 336-337 are genuine Reviewer Read
+denials, `read_target_outside_repository`, session
+`6c86ec97-bf2d-4e39-a6b7-026a038b3e09`. They are not probes and not mutation
+attempts. Both reflect coordinator evidence-routing errors, not retrieved
+payloads; approved sanitized evidence was subsequently supplied in the prompt.
+
+The original 334 records (117147 bytes) retain SHA-256
+`2511dabaa26521cf6d07ac04e8a5886348e8ef1cb6d64ba46598f97f89eacdcb`.
+337 records remain append-only. Zero successful forbidden mutations observed;
+whole-surface classification stays 8 / 0 / 8. These post-pilot events do not
+change the ten accepted pilot rows.

@@ -88,6 +88,35 @@ creates no project, bootstrap, temporary, profile, privacy-screen, cache, or
 bytecode state. The command still requires an installed Writwall package or a
 local source tree; when neither exists, use section 2's prompt-only fallback.
 
+Adding `--brief` (**unreleased source work; not part of any published
+release, including `v0.11.0`**) replaces that full copy-paste prompt with an
+opt-in, zero-write compact continuation brief: labeled sections (observed
+evidence, decision/authority references, proposals, next permitted step,
+mandatory evidence, optional references) bounded to 500 whitespace-delimited
+words of prose, followed by an unbounded evidence index citing only current,
+already-existing files with real byte sizes or an explicit "not yet
+materialized" / "unresolved" / "excluded" label — bytes are never a token,
+context, or cost measurement, and nothing is dropped to fit the budget. A
+work order's own `Routing:` line supports exactly one narrow, documented
+grammar: complete, whole relative-path words (letters, digits, `_`, `-`,
+`.`, `/`, ending in an extension, never `..` or absolute). A URL, a
+digest/version-decorated reference (`path@sha256:...`), and any path under
+a read-denied prefix (`governance/history/`, `governance/archive/`,
+`governance/rfis/`, `archive/`, `dist/`) are explicit unsupported or
+excluded forms, always reported pending or excluded, never silently
+resolved, rewritten, or measured. A digest-decorated reference stays
+unverified because no digest verifier exists yet; that is a stated
+limitation, never treated as proof a file is current or stale. A
+retired-lockout brief's closed-history evidence is limited to the
+classifier's own already-computed aggregate count, from a narrowly bounded,
+header-only read of each top-level `governance/history/WO-*.md` record —
+never a historical path, filename, or body. Every brief states plainly that
+it is an observation snapshot requiring a re-read of mandatory evidence and
+any active grant from current repository bytes before acting, and never
+authorizes execution by itself. `--brief` is opt-in, never a mandatory
+onboarding step, and never replaces the full charter, active work-order
+grant, and routed requirements.
+
 It classifies the target from repository bytes, copies the complete skill bundle
 into a temporary `.writwall-bootstrap/` directory only for a clean/new target,
 and emits the exact next prompt. It is lifecycle-aware bootstrap and routing
@@ -114,6 +143,7 @@ The idea-first qualification and identity gate are documented in
 |---|---|---|
 | `writwall start` | A new idea or clean project may receive create-only bootstrap bytes | Emits the fresh Architect handoff and makes the complete temporary adoption bundle local |
 | `writwall inspect --role architect` | An existing or workplace repository needs a zero-write first conversation, or an Architect must re-enter later | Prints bounded lifecycle evidence and a fresh Architect prompt without creating any state |
+| `writwall inspect --brief` (unreleased source work; not part of any published release, including `v0.11.0`) | A continuing agent needs a compact, evidence-linked recap instead of the full copy-paste prompt | Prints labeled sections bounded to 500 words of prose, plus an unbounded evidence index of current files with real byte sizes and explicit unknowns; opt-in only, never a replacement for the full charter, active grant, and routed requirements |
 | Prompt-only fallback | The package and source tree are unavailable, or policy permits a model conversation but no local tool | Starts the same Architect function; repository mechanics wait until the bundle is local |
 | Bundled `writwall-adopt` skill | The Owner has promoted the sketch and wants agent-assisted adoption mechanics | Inventories, proposes, and performs only separately ratified recorder actions |
 | `--structured-intake` or `init.sh` | Deterministic intake or expert low-level scaffolding is specifically needed | Preserves compatibility and feeds the fresh Architect; neither creates a second lifecycle nor changes authority |
