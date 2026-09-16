@@ -241,6 +241,34 @@ not clear results.
    replaces the full charter, active work-order grant, and routed
    requirements — the ordinary full handoff remains the default.
 
+   **`--external-operator-task` (unreleased source work; not part of any
+   published release, including `v0.11.0`).** `start` accepts an optional,
+   repeatable `--external-operator-task "NAME=classification"`, where `NAME`
+   must exactly match one already-named `--external-operator` function and
+   `classification` is one of `deployment`, `migration`, `source_freeze`, or
+   `cutover`. This is instruction-bound elicitation for the generated
+   packet, never a live readiness evaluator or real host/account/scheduler
+   discovery. A malformed pair, an unmatched name, an unsupported
+   classification, or a repeated name stops before any output is written.
+   Classification is never inferred from the Operator function's own
+   free-text name -- an Operator named `"Cutover step"` receives no
+   questionnaire unless explicitly classified. Ordinary local coding and any
+   unclassified external-Operator function receive no operational
+   questionnaire and no invented completeness. A classified Operator's
+   generated `operations/<slug>.md` packet gains one added
+   `## Operational preflight` section naming the environment/account
+   boundary and observation time, alternate writers/engines/schedulers
+   (`unknown` when inaccessible to inspect, distinct from verified-absent),
+   access limitations, approval scope, a per-transition revalidation
+   requirement (no single universal expiry period), rollback, and the last
+   safe stop; unresolved relevant inventory blocks only the affected
+   execution, never planning. The same classification also appears in
+   `intake.json["external_operator_tasks"]` as
+   `{"<Operator name>": "<classification>"}`. This elicits guidance only
+   within the named Operator's own boundary -- it proves nothing about any
+   other system, and a missing field is never treated as a new approval
+   gate on its own.
+
 3. For a clean/new target, the ordinary command above is conversation-first:
    it asks nothing on the command line and never blocks on a questionnaire.
    It observes actual repository lifecycle state, creates

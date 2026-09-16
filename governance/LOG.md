@@ -1188,3 +1188,35 @@ whitespace and nine-path license checks passed before acceptance. Full-source
 and publication gates were not run. Accepted records retain the limited
 installed fixture coverage and all earlier diagnostic failures. Public
 delivery remains separately gated; issues #37/#38 are not activated.
+
+## Post-pilot WO-WW-029 completed record — 2026-09-16
+
+Owner accepted with disclosed deviations and the non-blocking documentation-
+pinning suggestion; active minutes NOT REPORTED. This is post-pilot work,
+not an additional row in the completed ten-order pilot.
+
+- 9.2.1: zero ordinary mutation denials; record 338 is one excluded Write
+  canary. No successful forbidden mutation observed. The pre-launch provider
+  permission rejection is separate, not a wall event or failed canary.
+- 9.2.2: no new numbered RFI. Provider transmission and retained Ubuntu
+  verification-environment permission were obtained and recorded explicitly.
+- 9.2.3/9.2.4: RED/GREEN, sequencing overlap, post-implementation tests,
+  environment diagnostics and record corrections remain in the accepted
+  report. Normalized drift/rework totals NOT MEASURED, not reconstructed.
+  One native Sonnet Implementer and one distinct native Sonnet Reviewer;
+  continuations reused those sessions. No closed history retrieved for intent.
+- 9.2.5: activation corpus, routing-gap and orphan counts NOT MEASURED.
+- 9.2.6: 8 declared / 0 wholly enforced / 8 unenforced. The canary proves
+  only its tested session/channel. Owner-directed coordinator closeout has
+  separate authority, not inherited native-wall evidence.
+- 9.2.7: mandatory Owner-reading total NOT MEASURED. The retrospective
+  brief does not manufacture a pre-acceptance delivery or reading time.
+- 9.2.8: N/A for a qualified experimental instrument. Synthetic operational
+  packet cases and installed-wheel tests are not live infrastructure evidence.
+
+Windows affected suites ran 141 tests OK with four skips; native Ubuntu ran
+141 OK without skips after the separately approved isolated backend setup.
+Fresh Sonnet CONFORMANCE PASS, no substantive blocker; source-level review
+was independent, test execution was coordinator-attested. The preflight is
+instruction-bound guidance. No full-source suite or public projection was
+part of implementation acceptance; public delivery remains separately gated.

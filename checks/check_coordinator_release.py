@@ -74,6 +74,29 @@ AUTHORIZATION_CONTINUITY_OUTCOMES = (
     "never creates or transmits a task, message, or dataset outside the approved action",
 )
 
+# WO-WW-029: kept byte-for-byte equivalent (after whitespace normalization) to
+# scripts/start_writwall.py's `_operational_preflight_block()` content. This
+# installed-output gate proves the actual emitted operational-preflight
+# contract, never a semantic scheduler/writer/account parser or a claim of
+# real host discovery.
+OPERATIONAL_PREFLIGHT_REQUIREMENTS = (
+    "This bounded inventory is guidance only; it never performs, simulates, or "
+    "confirms real host, account, or scheduler discovery.",
+    "An entry the preparer cannot verify stays `unknown`, distinct from a "
+    "verified-absent entry",
+    "Unresolved relevant inventory blocks the affected execution, not planning.",
+    "Environment/account boundary. Observation time:",
+    "Alternate writers/engines/schedulers with plausible access to the same "
+    "target (name each one, or state `unknown` when inaccessible to inspect).",
+    "Access limitations preventing a complete inventory.",
+    "Approval scope: exactly what this operational task authorizes.",
+    "Revalidate this inventory's evidence at the relevant execution "
+    "transition; no single universal expiry period applies to every task.",
+    "Rollback: exact restoration procedure.",
+    "Last safe stop: the last point at which stopping leaves no partial, "
+    "unrecoverable change.",
+)
+
 
 class ReleaseCheckError(RuntimeError):
     """A bounded, user-facing release-candidate failure."""
@@ -385,6 +408,37 @@ def verify_authorization_continuity_content(text: str, surface: str) -> None:
         )
 
 
+def verify_operational_preflight_content(text: str, surface: str) -> None:
+    """Require the complete operational-preflight contract verbatim.
+
+    A missing requirement names the surface and the exact missing text; this
+    is a content-presence check against the one shared generator, never a
+    semantic scheduler/writer/account parser and never proof of independent
+    provider enforcement.
+    """
+    normalized = " ".join(text.split())
+    missing = [
+        requirement for requirement in OPERATIONAL_PREFLIGHT_REQUIREMENTS
+        if " ".join(requirement.split()) not in normalized
+    ]
+    if missing:
+        raise ReleaseCheckError(
+            f"operational preflight content missing in {surface}: "
+            + "; ".join(missing)
+        )
+
+
+def verify_operational_preflight_absent(text: str, surface: str) -> None:
+    """Ordinary/unclassified local work must receive no operational
+    questionnaire and no invented completeness -- never a fabricated
+    inventory for a task that was never classified."""
+    if "Operational task classification" in text or "## Operational preflight" in text:
+        raise ReleaseCheckError(
+            f"ordinary/unclassified {surface} unexpectedly carried an "
+            "operational preflight questionnaire"
+        )
+
+
 def check_candidate(candidate: Path, expected_tag: str) -> None:
     candidate = candidate.resolve()
     if not candidate.is_dir():
@@ -602,6 +656,96 @@ def check_candidate(candidate: Path, expected_tag: str) -> None:
             raise ReleaseCheckError(
                 f"installed coordinator recorded canonical root {recorded_root!r}, "
                 f"expected {expected_root!r}"
+            )
+
+        classified_project = workspace / "operational-preflight-classified-project"
+        classified_project.mkdir()
+        run(
+            [
+                str(command), "start", "--non-interactive",
+                "--project-root", str(classified_project),
+                "--project-name", "Operational preflight candidate",
+                "--purpose", "Exercise the real installed operational preflight.",
+                "--agent", "fresh Owner-Agent",
+                "--location", "outside the walled project session",
+                "--environment", "disposable local external project",
+                "--owner-time", "no",
+                "--confirm-no-secrets",
+                "--external-operator", "Synthetic cutover function",
+                "--external-operator-task", "Synthetic cutover function=cutover",
+            ],
+            cwd=workspace,
+            environment=environment,
+            label="installed classified operational-task run",
+        )
+        classified_output = classified_project / ".writwall-bootstrap"
+        classified_packets = sorted((classified_output / "operations").glob("*.md"))
+        if not classified_packets:
+            raise ReleaseCheckError(
+                "installed classified operational-task run produced no "
+                "external Operator packet"
+            )
+        for packet_path in classified_packets:
+            packet_text = packet_path.read_text(encoding="utf-8")
+            if "Operational task classification: cutover" not in packet_text:
+                raise ReleaseCheckError(
+                    "installed classified operational-task packet "
+                    f"{packet_path.name} omitted its classification label"
+                )
+            verify_operational_preflight_content(
+                packet_text, f"installed operational packet {packet_path.name}"
+            )
+        classified_intake = json.loads(
+            (classified_output / "intake.json").read_text(encoding="utf-8")
+        )
+        if classified_intake.get("external_operator_tasks") != {
+            "Synthetic cutover function": "cutover"
+        }:
+            raise ReleaseCheckError(
+                "installed classified operational-task intake.json recorded "
+                f"external_operator_tasks={classified_intake.get('external_operator_tasks')!r}, "
+                "expected {'Synthetic cutover function': 'cutover'}"
+            )
+
+        unclassified_project = workspace / "operational-preflight-unclassified-project"
+        unclassified_project.mkdir()
+        run(
+            [
+                str(command), "start", "--non-interactive",
+                "--project-root", str(unclassified_project),
+                "--project-name", "Ordinary local coding candidate",
+                "--purpose", "Exercise ordinary local coding with no operational task.",
+                "--agent", "fresh Owner-Agent",
+                "--location", "outside the walled project session",
+                "--environment", "disposable local external project",
+                "--owner-time", "no",
+                "--confirm-no-secrets",
+                "--external-operator", "Local coding helper",
+            ],
+            cwd=workspace,
+            environment=environment,
+            label="installed ordinary/unclassified local-work control run",
+        )
+        unclassified_output = unclassified_project / ".writwall-bootstrap"
+        unclassified_packets = sorted((unclassified_output / "operations").glob("*.md"))
+        if not unclassified_packets:
+            raise ReleaseCheckError(
+                "installed ordinary/unclassified control run produced no "
+                "external Operator packet"
+            )
+        for packet_path in unclassified_packets:
+            verify_operational_preflight_absent(
+                packet_path.read_text(encoding="utf-8"),
+                f"installed operator packet {packet_path.name}",
+            )
+        unclassified_intake = json.loads(
+            (unclassified_output / "intake.json").read_text(encoding="utf-8")
+        )
+        if unclassified_intake.get("external_operator_tasks") != {}:
+            raise ReleaseCheckError(
+                "installed ordinary/unclassified control run recorded a "
+                "non-empty external_operator_tasks: "
+                f"{unclassified_intake.get('external_operator_tasks')!r}"
             )
 
         adopted = workspace / "adopted-project"
@@ -1012,6 +1156,11 @@ def check_candidate(candidate: Path, expected_tag: str) -> None:
     print("  authorization contract: GENERAL/OPERATOR/REPOSITORY-OPERATOR, the "
           "external Operator packet, and General inspect output all carry the "
           "required authorization-continuity labels and outcome sentences")
+    print("  operational preflight: an explicit --external-operator-task "
+          "classification reaches the installed packet and intake.json with "
+          "the complete bounded-inventory contract; an ordinary/unclassified "
+          "local-work control receives no questionnaire and no invented "
+          "completeness")
 
 
 def parser() -> argparse.ArgumentParser:

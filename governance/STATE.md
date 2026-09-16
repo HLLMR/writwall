@@ -2,6 +2,38 @@
 
 # STATE — Writwall
 
+## Latest bounded checkpoint — 2026-09-16, WO-WW-029
+
+**OBSERVED:** Owner accepted WO-WW-029 with disclosed sequencing overlap,
+post-implementation coverage and environment diagnostics, plus a non-blocking
+documentation-pinning suggestion. Active minutes NOT REPORTED. Explicit
+operational preflight is accepted source work, not a new public release or a
+mechanically enforced readiness decision. Ordinary local coding is unchanged.
+Windows affected suites: 141 tests OK, four skips; native Ubuntu: 141 OK,
+no skips. Both included real installed-wheel tests. Fresh distinct Sonnet
+read-only review returned CONFORMANCE PASS; execution results were attested
+by the coordinator, not independently rerun by that Reviewer.
+
+Denial log: 338 records. Record 338 is one excluded first-Write canary;
+original 337-record byte prefix preserved. No ordinary mutation denial or
+successful forbidden mutation observed. Whole-surface classification remains
+8 / 0 / 8. The Owner directed retaining one isolated Ubuntu verification
+environment with setuptools 84.0.0; system Python and project dependencies
+were not changed. The original backend and quoting diagnostics remain visible.
+
+The work order, accepted report, lifecycle and retrospective brief are retired
+to governed history. The accepted report is byte-identical to the reviewed
+acceptance artifact. The pointer was removed last; live work-order and report
+directories now contain only .gitkeep. No successor is active. Closeout permits
+one private local commit only. No push, public projection, PR, release or
+adopter mutation is authorized. Issue #37 awaits separate public delivery;
+#38 and #41 remain proposals. No new interpreted assessment or operating-cost
+claim is added. Older checkpoints below are dated snapshots, not current status.
+
+Evidence: `governance/history/WO-WW-029-report.md` (private governed-source reference, not present in this candidate),
+`governance/history/WO-WW-029-issuance-lifecycle.md` (private governed-source reference, not present in this candidate),
+and `governance/history/WO-WW-029-closeout-brief.md` (private governed-source reference, not present in this candidate).
+
 ## Latest bounded checkpoint — 2026-09-15, WO-WW-028
 
 **OBSERVED:** Owner accepted WO-WW-028 with disclosed deviations and coverage
