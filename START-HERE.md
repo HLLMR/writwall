@@ -211,6 +211,36 @@ not clear results.
    lockout; explicit recovery only for a partial bootstrap. An active work
    order remains routed only to its bounded Operator under `--role auto`.
 
+   **`--brief` (unreleased source work; not part of any published release,
+   including `v0.11.0`).** Adding `--brief` to `inspect` prints an opt-in,
+   zero-write compact continuation brief instead of the full copy-paste
+   prompt: labeled sections (observed evidence, decision/authority
+   references, proposals, next permitted step, mandatory evidence, optional
+   references), bounded to 500 whitespace-delimited words of prose, followed
+   by an unbounded evidence index listing only current, already-existing
+   files with real byte sizes or an explicit "not yet materialized" /
+   "unresolved" / "excluded" label — never a silent guess. Byte sizes are
+   not a token, context, or cost measurement. A work order's own `Routing:`
+   line supports one narrow, documented grammar: whole, complete relative
+   paths (letters, digits, `_`, `-`, `.`, `/`, ending in an extension, never
+   `..` or absolute). A URL, a digest/version-decorated reference (`path@
+   sha256:...`), and any path under a read-denied prefix
+   (`governance/history/`, `governance/archive/`, `governance/rfis/`,
+   `archive/`, `dist/`) are explicit unsupported or excluded forms — always
+   pending, never silently resolved or measured. A digest-decorated
+   reference stays unverified because no digest verifier exists yet; that
+   absence is a stated limitation, never treated as proof the file is
+   current or stale. A retired-lockout brief's closed-history evidence is
+   limited to the lifecycle classifier's own already-computed aggregate
+   count, from a narrowly bounded, header-only read of each top-level
+   `governance/history/WO-*.md` record — never a historical path, filename,
+   or body. Every brief states plainly that it is an observation snapshot
+   and that mandatory evidence and any active grant must be re-read from
+   current repository bytes before acting; it never authorizes execution by
+   itself. `--brief` is opt-in, not a mandatory onboarding step, and never
+   replaces the full charter, active work-order grant, and routed
+   requirements — the ordinary full handoff remains the default.
+
 3. For a clean/new target, the ordinary command above is conversation-first:
    it asks nothing on the command line and never blocks on a questionnaire.
    It observes actual repository lifecycle state, creates

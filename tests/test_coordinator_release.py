@@ -291,6 +291,95 @@ class CoordinatorReleaseTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("installed help omitted", result.stdout + result.stderr)
 
+    def test_installed_broken_brief_only_fails_release_gate(self):
+        """The installed-wheel `--brief` release-gate contract.
+
+        Two disclosed post-implementation negative-test corrections, not
+        retroactive perfect TDD -- the missing installed-gate coverage this
+        test targets (RED10) was correctly identified and genuinely absent
+        from the start; only the mechanism used to *simulate* the defect
+        for the test was wrong, twice:
+
+        1. The first fixture edited ``writwall_cli/__main__.py``'s
+           ``build_parser()``, which ``__main__.main()`` never calls for the
+           `inspect` command (it dispatches directly to
+           ``writwall_cli.coordinator.inspect`` ->
+           ``scripts.start_writwall.inspect_main``, an independent parser).
+           That edit changed nothing about actual installed behavior.
+        2. The second fixture instead removed `--brief`'s own argparse
+           registration from ``inspect_main()`` -- but ``inspect_main()``
+           then reads ``args.brief`` unconditionally, so ordinary `inspect`
+           (with no `--brief` argument at all) raised ``AttributeError`` and
+           failed the *ordinary-inspect-succeeds* half of the precheck. This
+           was a second test-fixture defect, not a product failure: no
+           production correction was made in response.
+
+        The corrected fixture leaves both argparse parsers completely
+        untouched and instead modifies only this disposable candidate copy
+        of ``writwall_cli/__main__.py``'s exact `inspect` dispatch branch to
+        insert one synthetic, self-contained guard: if `--brief` is present
+        in the raw arguments, print a sentinel and exit 2 *before* reaching
+        the real parser or coordinator at all; otherwise, the original
+        import-and-dispatch line runs completely unchanged. An explicit
+        precheck, run through the candidate's own public CLI
+        (`python -m writwall_cli`, with the candidate directory as `cwd`,
+        never this governed source tree), proves ordinary `inspect` still
+        succeeds and `--brief` now exits 2 with the sentinel -- before the
+        real installed release gate is invoked and expected to reject the
+        same candidate with an `"installed brief"` diagnostic.
+        """
+        candidate = self.make_candidate()
+        entry = candidate / "writwall_cli" / "__main__.py"
+        original = entry.read_text(encoding="utf-8")
+        original_inspect_dispatch = (
+            '    if arguments[0] == "inspect":\n'
+            "        from writwall_cli.coordinator import inspect\n"
+            "        return inspect(arguments[1:])\n"
+        )
+        self.assertIn(original_inspect_dispatch, original)
+        synthetic_broken_dispatch = (
+            '    if arguments[0] == "inspect":\n'
+            "        if \"--brief\" in arguments:\n"
+            "            print(\"synthetic broken brief\", file=sys.stderr)\n"
+            "            return 2\n"
+            "        from writwall_cli.coordinator import inspect\n"
+            "        return inspect(arguments[1:])\n"
+        )
+        entry.write_text(
+            original.replace(original_inspect_dispatch, synthetic_broken_dispatch),
+            encoding="utf-8",
+            newline="\n",
+        )
+
+        precheck_target = self.temp / "brief-precheck-target"
+        precheck_target.mkdir()
+
+        def precheck(*extra: str) -> subprocess.CompletedProcess:
+            return subprocess.run(
+                [
+                    sys.executable, "-B", "-m", "writwall_cli", "inspect",
+                    "--project-root", str(precheck_target),
+                    "--role", "auto", *extra,
+                ],
+                cwd=candidate,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+
+        ordinary_precheck = precheck()
+        self.assertEqual(
+            ordinary_precheck.returncode, 0,
+            ordinary_precheck.stdout + ordinary_precheck.stderr,
+        )
+        broken_precheck = precheck("--brief")
+        self.assertEqual(broken_precheck.returncode, 2, broken_precheck.stderr)
+        self.assertIn("synthetic broken brief", broken_precheck.stderr)
+
+        result = self.run_checker(candidate)
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("installed brief", result.stdout + result.stderr)
+
     def test_installed_missing_inspect_route_fails_with_diagnostic(self):
         candidate = self.make_candidate()
         entry = candidate / "writwall_cli" / "__main__.py"

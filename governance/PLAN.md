@@ -864,3 +864,21 @@ authority from provider/environment blockers. Native Windows affected gates ran
 conformance review passed with ten passing synthetic scenarios. No real-world
 operating-cost improvement is claimed. Closeout permits one private commit;
 issue 35 remains open until a separately authorized public delivery.
+
+## 33. Compact evidence-linked continuation brief — 2026-09-14
+
+Authorize WO-WW-028 for public issue #36: add an opt-in, zero-write compact
+continuation brief to existing inspection. Link authoritative evidence and
+distinguish observed facts, human decisions, proposals, required inputs,
+optional references, and next permitted action or exact blocker. Do not
+infer approval, retrieve closed history, introduce telemetry, alter role
+eligibility, or replace mandatory evidence with a summary. Verify source
+and installed behavior on Windows and Ubuntu with fresh review. Issues
+#37 and #38 remain proposals; no release or adopter migration is authorized.
+
+**WO-WW-028 COMPLETE, accepted 2026-09-15**, including disclosed deviations
+and coverage limits. Opt-in compact inspection and its installed-wheel gate
+are implemented. Windows affected suites ran 133 tests, OK with four skips;
+Ubuntu ran 133, OK without skips. Fresh Sonnet review: ACCEPT / HIGH.
+Ordinary closeout and one private commit/push are authorized. Public delivery
+and issue #36 closure require separate authorization; #37/#38 stay proposals.

@@ -1157,3 +1157,34 @@ to private governed history. Publication proceeds separately after closeout.
 | 9.2.8 | Logged with outcome; the record of who was right feeds a later qualification event under 8.4.4 |
 
 If the predictions fail, this log says which control failed and how. That is a finding (9.3.2), and it is stated publicly if the results are published.
+
+## Post-pilot WO-WW-028 completed record — 2026-09-15
+
+Owner accepted with disclosed deviations and coverage limits; active minutes
+NOT REPORTED. This does not add a row to the completed ten-order pilot.
+
+- 9.2.1: zero ordinary mutation denials; one excluded Write canary (335).
+  Two additional genuine non-mutating Reviewer Read denials (336-337) remain
+  separately visible, not reclassified as probes. No forbidden mutation succeeded.
+- 9.2.2: no new numbered RFI; the history-read scope contradiction was resolved
+  by explicitly ratified Amendment 1 in the work order and lifecycle record.
+- 9.2.3/9.2.4: corrections, failures and review returns are preserved in the
+  report; normalized drift and rework totals NOT MEASURED, not invented after
+  acceptance. One native Implementer and one distinct native Reviewer session
+  were resumed. No closed historical body was retrieved; the narrow approved
+  deterministic header-only classification is not archaeology of intent.
+- 9.2.5: activation-time corpus, routing-gap and orphan counts NOT MEASURED.
+- 9.2.6: 8 declared / 0 wholly enforced / 8 unenforced. The live canary proves
+  only its tested session/channel. Owner-recorder closeout is separately
+  authorized, not transferable provider-wall evidence.
+- 9.2.7: mandatory Owner-reading total NOT MEASURED. The closeout brief is
+  retrospective; no pre-acceptance brief delivery or reading time is invented.
+- 9.2.8: N/A for a qualified empirical instrument. Three synthetic lifecycle
+  scenarios passed; no live-agent performance or cost reduction is claimed.
+
+Final bounded gates: Windows affected 133 tests OK, four skips; native Ubuntu
+133 OK, no skips. Fresh Sonnet ACCEPT / HIGH, no substantive blocker. Scope,
+whitespace and nine-path license checks passed before acceptance. Full-source
+and publication gates were not run. Accepted records retain the limited
+installed fixture coverage and all earlier diagnostic failures. Public
+delivery remains separately gated; issues #37/#38 are not activated.

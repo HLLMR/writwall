@@ -233,12 +233,14 @@ class StartWritwallTests(unittest.TestCase):
             timeout=60,
         )
 
-    def run_inspect(self, role: str = "auto", project: Path | None = None):
+    def run_inspect(self, role: str = "auto", project: Path | None = None,
+                     brief: bool = False):
         return subprocess.run(
             [
                 sys.executable, "-B", "-m", "writwall_cli", "inspect",
                 "--project-root", str(project or self.project),
                 "--role", role,
+                *(("--brief",) if brief else ()),
             ],
             cwd=REPO_ROOT,
             env=self.environment(),
@@ -1015,6 +1017,111 @@ class StartWritwallTests(unittest.TestCase):
                 self.assertIn(f"Observed lifecycle state: {lifecycle}", result.stdout)
                 self.assertIn("Selected role: Fresh General", result.stdout)
 
+    def test_retired_lockout_history_read_stops_before_invalid_utf8_body(self):
+        """File-I/O boundary regression for ratified Amendment 1.
+
+        Entirely synthetic fixture: a valid CLOSED historical work-order
+        header immediately followed by invalid-UTF-8 body bytes. Correct
+        classification depends only on the header; it must never *read* the
+        body, not merely avoid decoding it. This instruments the actual raw
+        file-I/O boundary (not the classifier): it requires the record be
+        opened unbuffered (`buffering=0`, so no internal buffered reader can
+        silently pull body bytes into memory ahead of the caller's requests),
+        and it sums every byte ever returned across every read call -- the
+        cumulative total, not merely the largest single call -- asserting it
+        equals exactly the header's byte length, including its closing
+        delimiter, with zero slack. It also asserts no returned chunk ever
+        contains either invalid marker byte from the synthetic body.
+        """
+        governance = self.project / "governance"
+        governance.mkdir()
+        for name in ("PLAN.md", "STATE.md", "ROUTING.md"):
+            (governance / name).write_text(f"# {name}\n", encoding="utf-8")
+        decisions = governance / "decisions"
+        decisions.mkdir(parents=True)
+        (decisions / "DR-001.md").write_text(
+            ratified_adoption_record(), encoding="utf-8"
+        )
+        history = governance / "history"
+        history.mkdir()
+        header = b"---\nid: WO-SYN-001\nstatus: CLOSED\n---\n"
+        invalid_body = b"\xff\xfe not valid utf-8 body content\n"
+        record = history / "WO-SYN-001.md"
+        record.write_bytes(header + invalid_body)
+
+        raw_bytes_consumed = 0
+        buffering_used: list[object] = []
+        original_open = Path.open
+        test_case = self
+
+        class _RawIOBoundaryProxy:
+            """Forwards to the real handle while measuring every byte it
+            ever returns, at the exact boundary the production code calls,
+            and asserting no returned chunk ever carries a body byte."""
+
+            def __init__(self, handle):
+                self._handle = handle
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc_info):
+                return self._handle.__exit__(*exc_info)
+
+            @staticmethod
+            def _record_chunk(chunk: bytes) -> None:
+                nonlocal raw_bytes_consumed
+                raw_bytes_consumed += len(chunk)
+                test_case.assertNotIn(
+                    b"\xff", chunk, "raw read consumed an invalid body byte"
+                )
+                test_case.assertNotIn(
+                    b"\xfe", chunk, "raw read consumed an invalid body byte"
+                )
+
+            def read(self, size=-1, *args, **kwargs):
+                result = self._handle.read(size, *args, **kwargs)
+                self._record_chunk(
+                    result if isinstance(result, (bytes, bytearray)) else b""
+                )
+                return result
+
+            def readinto(self, buffer):
+                result = self._handle.readinto(buffer)
+                if result:
+                    self._record_chunk(bytes(buffer[:result]))
+                return result
+
+            def __getattr__(self, name):
+                return getattr(self._handle, name)
+
+        def instrumented_open(self_path, *args, **kwargs):
+            handle = original_open(self_path, *args, **kwargs)
+            if self_path != record:
+                return handle
+            buffering_used.append(
+                kwargs.get("buffering", args[1] if len(args) > 1 else -1)
+            )
+            return _RawIOBoundaryProxy(handle)
+
+        with mock.patch.object(Path, "open", instrumented_open):
+            state = starter_module.classify_project(self.project)
+
+        self.assertEqual(state.name, "retired_lockout")
+        self.assertTrue(buffering_used, "expected the historical record to be opened")
+        self.assertIn(
+            0, buffering_used,
+            "the historical record must be opened with buffering=0 (raw, "
+            "unbuffered binary I/O), so no internal buffer can pull body "
+            "bytes into memory ahead of the caller's own requests",
+        )
+        self.assertEqual(
+            raw_bytes_consumed, len(header),
+            "total raw bytes ever read from the historical record must equal "
+            "exactly the header including its closing delimiter, with zero "
+            "slack into the body",
+        )
+
     def test_inspect_rejects_unsafe_explicit_role_lifecycle_combinations(self):
         cases = (("general", "clean_new"), ("recovery", "clean_new"))
         for role, lifecycle in cases:
@@ -1078,6 +1185,780 @@ class StartWritwallTests(unittest.TestCase):
         self.assertIn("Top-level project entries: README.md", result.stdout)
         self.assertNotIn("discovery.json", result.stdout)
         self.assertNotIn("ARCHITECT.md", result.stdout)
+
+    def test_inspect_brief_on_new_project_is_zero_write_with_labeled_sections_and_bounded_prose(self):
+        (self.project / "README.md").write_text(
+            "# Existing unadopted project\n", encoding="utf-8"
+        )
+        before = self.tree_snapshot(self.project)
+
+        result = self.run_inspect("architect", brief=True)
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.tree_snapshot(self.project), before)
+        self.assertFalse(self.output.exists())
+        self.assertFalse(self.state.exists())
+
+        stdout = result.stdout
+        self.assertIn("### Compact continuation brief", stdout)
+        self.assertNotIn("Copy this prompt into a fresh session", stdout)
+        for heading in (
+            "## Observed lifecycle and objective evidence",
+            "## Decision and authority references",
+            "## Proposals (not approval)",
+            "## Next permitted step or unresolved condition",
+            "## Mandatory evidence",
+            "## Optional references",
+            "## Evidence index (outside the prose word budget)",
+        ):
+            self.assertIn(heading, stdout, heading)
+
+        brief_start = stdout.index("### Compact continuation brief")
+        index_heading = "## Evidence index (outside the prose word budget)"
+        index_start = stdout.index(index_heading)
+        self.assertLess(brief_start, index_start)
+        prose = stdout[brief_start:index_start]
+        self.assertLessEqual(len(prose.split()), 500)
+        self.assertIn("evidence index excluded", prose)
+
+        evidence_index = stdout[index_start:]
+        self.assertIn(
+            "bytes do not measure tokens, context, or cost",
+            " ".join(evidence_index.split()),
+        )
+
+    def test_inspect_brief_on_active_work_order_cites_evidence_paths_and_pending_route(self):
+        charter_bytes = b"# Charter\n\nA.1 Prohibitions apply.\n"
+        plan_bytes = b"# PLAN\n\nRatified intent.\n"
+        routing_bytes = b"# ROUTING\n\nR.4 governs skills/**.\n"
+        state_bytes = b"# STATE\n\nOBSERVED and INTERPRETED sections.\n"
+        requirement_bytes = b"# Example current requirement\n\nSafely referenced.\n"
+        work_order_bytes = (
+            b"---\nid: WO-001\nstatus: ACTIVE\n---\n"
+            b"# WO-001: Example\n\n"
+            b"## Objective\n\n"
+            b"Do the bounded thing.\n\n"
+            b"Routing: see docs/example-requirement.md and docs/unmapped-note.md.\n"
+        )
+
+        (self.project / "CLAUDE.md").write_bytes(charter_bytes)
+        governance = self.project / "governance"
+        governance.mkdir()
+        (governance / "PLAN.md").write_bytes(plan_bytes)
+        (governance / "ROUTING.md").write_bytes(routing_bytes)
+        (governance / "STATE.md").write_bytes(state_bytes)
+        work_orders = governance / "work-orders"
+        work_orders.mkdir()
+        work_order_path = work_orders / "WO-001.md"
+        work_order_path.write_bytes(work_order_bytes)
+        docs = self.project / "docs"
+        docs.mkdir()
+        (docs / "example-requirement.md").write_bytes(requirement_bytes)
+        pointer = self.project / ".claude" / "active-wo.txt"
+        pointer.parent.mkdir(parents=True)
+        pointer.write_text("governance/work-orders/WO-001.md\n", encoding="utf-8")
+
+        before = self.tree_snapshot(self.project)
+
+        result = self.run_inspect("auto", brief=True)
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.tree_snapshot(self.project), before)
+        self.assertFalse(self.output.exists())
+        self.assertFalse(self.state.exists())
+
+        stdout = result.stdout
+        self.assertIn("### Compact continuation brief", stdout)
+        self.assertNotIn("Copy this prompt into a fresh session", stdout)
+        self.assertNotIn(
+            "Act as a fresh Implementer for the active work order only", stdout
+        )
+        self.assertNotIn("governance/history", stdout)
+        self.assertNotIn("history", stdout.lower())
+
+        for relative, size in (
+            ("CLAUDE.md", len(charter_bytes)),
+            ("governance/PLAN.md", len(plan_bytes)),
+            ("governance/ROUTING.md", len(routing_bytes)),
+            ("governance/STATE.md", len(state_bytes)),
+            ("governance/work-orders/WO-001.md", len(work_order_bytes)),
+            ("docs/example-requirement.md", len(requirement_bytes)),
+        ):
+            self.assertIn(f"{relative} ({size} bytes)", stdout, relative)
+
+        self.assertIn("docs/unmapped-note.md", stdout)
+        self.assertIn("remains pending", stdout)
+        self.assertIn("unresolved", stdout)
+
+        self.assertIn("not inferred Owner approval", stdout)
+        # This fixture's Routing: line names one genuinely unresolved
+        # reference (docs/unmapped-note.md), so the brief must not claim the
+        # unqualified confident-execution phrasing; it must state the
+        # stricter, now-correct safety contract instead.
+        self.assertNotIn(
+            "Mandatory evidence in the index below is present. The only "
+            "permitted next role is the bounded Operator",
+            stdout,
+        )
+        self.assertIn("remains the bounded Operator", stdout)
+        self.assertIn("does not authorize execution", stdout)
+        self.assertIn("observation snapshot", stdout)
+
+    def test_inspect_brief_active_work_order_bounds_prose_and_moves_evidence_index_after_boundary(self):
+        """Excess current routing references must never blow the 500-word
+        prose budget; every mandatory input and every routed reference must
+        still appear, with safe byte sizes, in the trailing evidence index
+        -- never truncated, never counted against the prose budget. Entirely
+        synthetic fixture; no real project material is read or referenced.
+        """
+        charter_bytes = b"# Charter\n\nA.1 Prohibitions apply.\n"
+        plan_bytes = b"# PLAN\n\nRatified intent.\n"
+        routing_bytes = b"# ROUTING\n\nR.4 governs skills/**.\n"
+        state_bytes = b"# STATE\n\nOBSERVED and INTERPRETED sections.\n"
+
+        (self.project / "CLAUDE.md").write_bytes(charter_bytes)
+        governance = self.project / "governance"
+        governance.mkdir()
+        (governance / "PLAN.md").write_bytes(plan_bytes)
+        (governance / "ROUTING.md").write_bytes(routing_bytes)
+        (governance / "STATE.md").write_bytes(state_bytes)
+
+        docs = self.project / "docs"
+        docs.mkdir()
+        routed_relatives: list[tuple[str, int]] = []
+        for index in range(1, 121):
+            name = f"req-{index:03d}.md"
+            content = f"# Requirement {index}\n".encode("utf-8")
+            (docs / name).write_bytes(content)
+            routed_relatives.append((f"docs/{name}", len(content)))
+
+        routing_line = (
+            "Routing: see " + ", ".join(relative for relative, _ in routed_relatives) + "."
+        )
+        work_order_bytes = (
+            b"---\nid: WO-001\nstatus: ACTIVE\n---\n"
+            b"# WO-001: Example\n\n"
+            b"## Objective\n\n"
+            b"Do the bounded thing.\n\n"
+            + routing_line.encode("utf-8") + b"\n"
+        )
+        work_orders = governance / "work-orders"
+        work_orders.mkdir()
+        work_order_path = work_orders / "WO-001.md"
+        work_order_path.write_bytes(work_order_bytes)
+        pointer = self.project / ".claude" / "active-wo.txt"
+        pointer.parent.mkdir(parents=True)
+        pointer.write_text("governance/work-orders/WO-001.md\n", encoding="utf-8")
+
+        before = self.tree_snapshot(self.project)
+
+        result = self.run_inspect("auto", brief=True)
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.tree_snapshot(self.project), before)
+        self.assertFalse(self.output.exists())
+        self.assertFalse(self.state.exists())
+
+        stdout = result.stdout
+        self.assertNotIn("Copy this prompt into a fresh session", stdout)
+        self.assertNotIn(
+            "Act as a fresh Implementer for the active work order only", stdout
+        )
+
+        index_heading = "## Evidence index (outside the prose word budget)"
+        self.assertIn(index_heading, stdout)
+        brief_start = stdout.index("### Compact continuation brief")
+        index_start = stdout.index(index_heading)
+        self.assertLess(brief_start, index_start)
+
+        prose = stdout[brief_start:index_start]
+        self.assertLessEqual(
+            len(prose.split()), 500,
+            "prose before the evidence index must stay within its own "
+            "500-word budget even when many current routing references "
+            "are supplied",
+        )
+
+        evidence_index = stdout[index_start:]
+        for relative, size in (
+            ("CLAUDE.md", len(charter_bytes)),
+            ("governance/PLAN.md", len(plan_bytes)),
+            ("governance/ROUTING.md", len(routing_bytes)),
+            ("governance/STATE.md", len(state_bytes)),
+            ("governance/work-orders/WO-001.md", len(work_order_bytes)),
+        ):
+            self.assertIn(
+                f"{relative} ({size} bytes)", evidence_index,
+                f"mandatory input {relative} missing from the evidence index",
+            )
+        for relative, size in routed_relatives:
+            self.assertIn(
+                f"{relative} ({size} bytes)", evidence_index,
+                f"routed reference {relative} missing from the evidence index",
+            )
+
+    def test_inspect_brief_on_lockout_cites_current_governance_evidence_and_general_guidance(self):
+        """One parameterized regression for adopted and retired lockout.
+
+        Entirely synthetic fixtures built with the existing
+        ``ratified_adoption_record()`` helper. Mandatory evidence must cite
+        the current charter, Plan, State, Routing, and the current ratified
+        adoption record with byte sizes. A retired lockout's closed-history
+        evidence must stay aggregate (a count only) -- no historical
+        pathname or body ever appears in the brief. The next-permitted-step
+        must give concrete General planning/dispatch-next-work guidance,
+        never mutation permission, and state plainly that this is an
+        observation snapshot requiring a re-read of mandatory evidence
+        before acting.
+        """
+        for lifecycle in ("adopted_lockout", "retired_lockout"):
+            with self.subTest(lifecycle=lifecycle):
+                project = self.temp / lifecycle
+                charter_bytes = b"# Charter\n\nA.1 Prohibitions apply.\n"
+                plan_bytes = b"# PLAN\n\nRatified intent.\n"
+                state_bytes = b"# STATE\n\nOBSERVED and INTERPRETED sections.\n"
+                routing_bytes = b"# ROUTING\n\nR.4 governs skills/**.\n"
+                adoption_bytes = ratified_adoption_record().encode("utf-8")
+
+                governance = project / "governance"
+                governance.mkdir(parents=True)
+                (project / "CLAUDE.md").write_bytes(charter_bytes)
+                (governance / "PLAN.md").write_bytes(plan_bytes)
+                (governance / "STATE.md").write_bytes(state_bytes)
+                (governance / "ROUTING.md").write_bytes(routing_bytes)
+                decisions = governance / "decisions"
+                decisions.mkdir()
+                (decisions / "DR-001.md").write_bytes(adoption_bytes)
+
+                if lifecycle == "retired_lockout":
+                    closed = governance / "history" / "WO-001.md"
+                    closed.parent.mkdir(parents=True)
+                    closed.write_text(
+                        "---\nid: WO-001\nstatus: CLOSED\n---\n", encoding="utf-8"
+                    )
+
+                before = self.tree_snapshot(project)
+
+                result = self.run_inspect("auto", project=project, brief=True)
+
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(self.tree_snapshot(project), before)
+                self.assertFalse((project / ".writwall-bootstrap").exists())
+                self.assertFalse(self.state.exists())
+
+                stdout = result.stdout
+                self.assertIn(f"Observed lifecycle state: {lifecycle}", stdout)
+                self.assertNotIn("Copy this prompt into a fresh session", stdout)
+                self.assertNotIn("Act as a fresh General", stdout)
+
+                for relative, size in (
+                    ("CLAUDE.md", len(charter_bytes)),
+                    ("governance/PLAN.md", len(plan_bytes)),
+                    ("governance/STATE.md", len(state_bytes)),
+                    ("governance/ROUTING.md", len(routing_bytes)),
+                    ("governance/decisions/DR-001.md", len(adoption_bytes)),
+                ):
+                    self.assertIn(f"{relative} ({size} bytes)", stdout, relative)
+
+                self.assertNotIn("governance/history", stdout)
+                self.assertNotIn("WO-001.md", stdout)
+                if lifecycle == "retired_lockout":
+                    self.assertIn("closed work-order record", stdout)
+
+                self.assertIn("observation snapshot", stdout)
+                self.assertIn("re-read", stdout)
+                self.assertIn("Prepare, but do not activate", stdout)
+                self.assertIn("bounded Operator packet", stdout)
+                self.assertIn("no mutation authority", stdout)
+
+    def test_inspect_brief_active_work_order_flags_unresolved_unsafe_and_unsupported_routing_without_confidence(self):
+        """One parameterized public-CLI regression.
+
+        An active brief must never imply execution readiness while any
+        routed evidence is unresolved, unsafe, or unsupported -- even though
+        every recognized mandatory input (charter, Plan, Routing, State, the
+        work order itself) is genuinely present. Entirely synthetic
+        fixtures; no real history/archive/dist/other-project content is
+        read, and no network or out-of-fixture filesystem access occurs.
+        """
+        charter_bytes = b"# Charter\n\nA.1 Prohibitions apply.\n"
+        plan_bytes = b"# PLAN\n\nRatified intent.\n"
+        routing_bytes = b"# ROUTING\n\nR.4 governs skills/**.\n"
+        state_bytes = b"# STATE\n\nOBSERVED and INTERPRETED sections.\n"
+
+        (self.project / "CLAUDE.md").write_bytes(charter_bytes)
+        governance = self.project / "governance"
+        governance.mkdir()
+        (governance / "PLAN.md").write_bytes(plan_bytes)
+        (governance / "ROUTING.md").write_bytes(routing_bytes)
+        (governance / "STATE.md").write_bytes(state_bytes)
+
+        # Case: relative escape -- a real file that exists just outside the
+        # project root, so a leaked byte size would be detectable.
+        outside_content = b"Secret sibling content.\n"
+        (self.temp / "outside-secret.md").write_bytes(outside_content)
+
+        # Case: an excluded protected-prefix reference. Entirely synthetic
+        # content at a synthetic project-local path; not a real historical,
+        # archived, RFI, or dist record of any actual project.
+        history_dir = governance / "history"
+        history_dir.mkdir()
+        history_content = b"Synthetic excluded-prefix content.\n"
+        (history_dir / "WO-999.md").write_bytes(history_content)
+
+        # Case: digest-bearing reference. The plain, undecorated file is
+        # real; the digest annotation must not be silently stripped and the
+        # plain file confidently substituted in its place.
+        docs = self.project / "docs"
+        docs.mkdir()
+        (docs / "pinned.md").write_bytes(b"# Pinned content\n")
+        digest = "de" * 32
+
+        routing_line = (
+            "Routing: see docs/missing-current.md, ../outside-secret.md, "
+            "https://example.com/spec.md, governance/history/WO-999.md and "
+            f"docs/pinned.md@sha256:{digest}."
+        )
+        work_order_bytes = (
+            b"---\nid: WO-001\nstatus: ACTIVE\n---\n"
+            b"# WO-001: Example\n\n"
+            b"## Objective\n\n"
+            b"Do the bounded thing.\n\n"
+            + routing_line.encode("utf-8") + b"\n"
+        )
+        work_orders = governance / "work-orders"
+        work_orders.mkdir()
+        work_order_path = work_orders / "WO-001.md"
+        work_order_path.write_bytes(work_order_bytes)
+        pointer = self.project / ".claude" / "active-wo.txt"
+        pointer.parent.mkdir(parents=True)
+        pointer.write_text("governance/work-orders/WO-001.md\n", encoding="utf-8")
+
+        before = self.tree_snapshot(self.project)
+
+        result = self.run_inspect("auto", brief=True)
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.tree_snapshot(self.project), before)
+        self.assertFalse(self.output.exists())
+        self.assertFalse(self.state.exists())
+
+        stdout = result.stdout
+        self.assertNotIn("Copy this prompt into a fresh session", stdout)
+        self.assertNotIn(
+            "Act as a fresh Implementer for the active work order only", stdout
+        )
+
+        with self.subTest(case="missing_current_path"):
+            self.assertIn("docs/missing-current.md", stdout)
+            self.assertIn("remains pending", stdout)
+
+        with self.subTest(case="relative_escape_never_leaks_size"):
+            self.assertIn("../outside-secret.md", stdout)
+            self.assertNotIn(f"({len(outside_content)} bytes)", stdout)
+
+        with self.subTest(case="url_named_in_full_never_mangled_fragment"):
+            self.assertIn("https://example.com/spec.md", stdout)
+            self.assertNotIn("- //example.com/spec.md", stdout)
+
+        with self.subTest(case="excluded_prefix_never_measured"):
+            self.assertIn("governance/history/WO-999.md", stdout)
+            self.assertIn("excluded", stdout)
+            self.assertNotIn(
+                f"governance/history/WO-999.md ({len(history_content)} bytes)",
+                stdout,
+            )
+
+        with self.subTest(case="digest_bearing_reference_never_substituted"):
+            self.assertIn(f"docs/pinned.md@sha256:{digest}", stdout)
+            self.assertNotIn("- docs/pinned.md (", stdout)
+
+        with self.subTest(case="no_confident_execution_readiness"):
+            self.assertNotIn(
+                "Mandatory evidence in the index below is present. The only "
+                "permitted next role is the bounded Operator",
+                stdout,
+            )
+            self.assertIn("does not authorize execution", stdout)
+            self.assertIn("remains the bounded Operator", stdout)
+            self.assertIn("observation snapshot", stdout)
+            self.assertIn("re-read", stdout)
+
+        with self.subTest(case="contradictory_lifecycle_stays_fail_closed"):
+            contradictory = self.temp / "contradictory"
+            contradictory.mkdir()
+            orders = contradictory / "governance" / "work-orders"
+            orders.mkdir(parents=True)
+            for name in ("WO-001.md", "WO-002.md"):
+                (orders / name).write_text(
+                    f"---\nid: {name[:-3]}\nstatus: ACTIVE\n---\n",
+                    encoding="utf-8",
+                )
+            contradictory_pointer = contradictory / ".claude" / "active-wo.txt"
+            contradictory_pointer.parent.mkdir(parents=True)
+            contradictory_pointer.write_text(
+                "governance/work-orders/WO-001.md\n", encoding="utf-8"
+            )
+            before_contradictory = self.tree_snapshot(contradictory)
+            contradictory_result = self.run_inspect(
+                "auto", project=contradictory, brief=True
+            )
+            self.assertNotEqual(contradictory_result.returncode, 0)
+            self.assertEqual(
+                self.tree_snapshot(contradictory), before_contradictory
+            )
+            self.assertIn(
+                "activation pointer does not identify the only ACTIVE "
+                "work order",
+                contradictory_result.stderr,
+            )
+
+    def test_inspect_brief_active_work_order_routing_boundary_cases(self):
+        """One focused extension of the routing regression, covering two
+        additional boundary cases found by source review, plus one
+        preventive I/O-boundary guard.
+
+        Run in-process (not via subprocess) so the file-I/O boundary can be
+        instrumented directly. Entirely synthetic fixtures; no real
+        history/archive/RFI/dist/other-project content is read.
+        """
+        charter_bytes = b"# Charter\n\nA.1 Prohibitions apply.\n"
+        plan_bytes = b"# PLAN\n\nRatified intent.\n"
+        routing_bytes = b"# ROUTING\n\nR.4 governs skills/**.\n"
+        state_bytes = b"# STATE\n\nOBSERVED and INTERPRETED sections.\n"
+        confident_phrase = (
+            "Mandatory evidence in the index below is present. The only "
+            "permitted next role is the bounded Operator"
+        )
+
+        def make_project(name: str) -> Path:
+            project = self.temp / name
+            governance = project / "governance"
+            governance.mkdir(parents=True)
+            (project / "CLAUDE.md").write_bytes(charter_bytes)
+            (governance / "PLAN.md").write_bytes(plan_bytes)
+            (governance / "ROUTING.md").write_bytes(routing_bytes)
+            (governance / "STATE.md").write_bytes(state_bytes)
+            return project
+
+        def write_work_order(project: Path, routing_line: str | None) -> None:
+            work_orders = project / "governance" / "work-orders"
+            work_orders.mkdir(parents=True)
+            body = (
+                b"---\nid: WO-001\nstatus: ACTIVE\n---\n"
+                b"# WO-001: Example\n\n"
+                b"## Objective\n\n"
+                b"Do the bounded thing.\n"
+            )
+            if routing_line is not None:
+                body += b"\n" + routing_line.encode("utf-8") + b"\n"
+            (work_orders / "WO-001.md").write_bytes(body)
+            pointer = project / ".claude" / "active-wo.txt"
+            pointer.parent.mkdir(parents=True)
+            pointer.write_text(
+                "governance/work-orders/WO-001.md\n", encoding="utf-8"
+            )
+
+        def render(project: Path) -> str:
+            output = io.StringIO()
+            with redirect_stdout(output):
+                result = starter_module.inspect_main(
+                    ["--project-root", str(project), "--role", "auto", "--brief"]
+                )
+            self.assertEqual(result, 0)
+            return output.getvalue()
+
+        def make_recording_stat(sink: list[str]):
+            original_stat = Path.stat
+
+            def recording_stat(self_path, *args, **kwargs):
+                sink.append(str(self_path))
+                return original_stat(self_path, *args, **kwargs)
+
+            return recording_stat
+
+        with self.subTest(case="no_routing_line"):
+            project = make_project("no-routing-line")
+            write_work_order(project, None)
+            stdout = render(project)
+            self.assertNotIn(confident_phrase, stdout)
+
+        with self.subTest(case="empty_routing_line"):
+            project = make_project("empty-routing-line")
+            write_work_order(project, "Routing:")
+            stdout = render(project)
+            self.assertNotIn(confident_phrase, stdout)
+
+        with self.subTest(case="mixed_case_excluded_prefix"):
+            project = make_project("mixed-case-excluded")
+            history_dir = project / "governance" / "history"
+            history_dir.mkdir()
+            history_content = b"Synthetic excluded-prefix content, mixed case.\n"
+            (history_dir / "WO-999.md").write_bytes(history_content)
+            write_work_order(project, "Routing: see Governance/History/WO-999.md.")
+            stat_calls: list[str] = []
+            with mock.patch.object(Path, "stat", make_recording_stat(stat_calls)):
+                stdout = render(project)
+            self.assertIn("Governance/History/WO-999.md", stdout)
+            self.assertIn("excluded", stdout)
+            self.assertNotIn(
+                f"Governance/History/WO-999.md ({len(history_content)} bytes)",
+                stdout,
+            )
+            real_history_file = str((history_dir / "WO-999.md").resolve())
+            self.assertFalse(
+                any(call.lower() == real_history_file.lower() for call in stat_calls),
+                "the excluded record must never be stat'd, even via a "
+                "differently-cased alias",
+            )
+
+        with self.subTest(case="trailing_dot_directory_alias_excluded_prefix"):
+            project = make_project("trailing-dot-alias")
+            history_dir = project / "governance" / "history"
+            history_dir.mkdir()
+            history_content = b"Synthetic excluded-prefix content, dot alias.\n"
+            (history_dir / "WO-999.md").write_bytes(history_content)
+            write_work_order(project, "Routing: see governance/history./WO-999.md.")
+            stat_calls = []
+            with mock.patch.object(Path, "stat", make_recording_stat(stat_calls)):
+                stdout = render(project)
+            self.assertIn("governance/history./WO-999.md", stdout)
+            self.assertIn("excluded", stdout)
+            self.assertNotIn(
+                f"governance/history./WO-999.md ({len(history_content)} bytes)",
+                stdout,
+            )
+            real_history_file = str((history_dir / "WO-999.md").resolve())
+            self.assertFalse(
+                any(call.lower() == real_history_file.lower() for call in stat_calls),
+                "the excluded record must never be stat'd via a trailing-dot "
+                "directory alias",
+            )
+
+        with self.subTest(case="symlink_outside_root_never_stated_before_rejection"):
+            project = make_project("symlink-outside-root")
+            outside_target = self.temp / "symlink-outside-target.md"
+            outside_content = b"Outside-root symlink target content.\n"
+            outside_target.write_bytes(outside_content)
+            docs = project / "docs"
+            docs.mkdir()
+            symlink_path = docs / "linked.md"
+            try:
+                symlink_path.symlink_to(outside_target)
+            except OSError as exc:
+                self.skipTest(f"symlink privilege unavailable: {exc}")
+            write_work_order(project, "Routing: see docs/linked.md.")
+            stat_calls = []
+            with mock.patch.object(Path, "stat", make_recording_stat(stat_calls)):
+                stdout = render(project)
+            self.assertIn("docs/linked.md", stdout)
+            self.assertNotIn(f"({len(outside_content)} bytes)", stdout)
+            real_outside = str(outside_target.resolve())
+            self.assertFalse(
+                any(call == real_outside for call in stat_calls),
+                "a symlink resolving outside the project root must never be "
+                "stat'd for its metadata before the safety check rejects it",
+            )
+
+    def test_inspect_brief_entry_states_give_concrete_state_specific_guidance(self):
+        """One parameterized public-CLI regression for clean/new, incomplete
+        adoption (partial bootstrap), and public-distribution entry states.
+
+        Each must give concrete, read-only, state-specific next-step
+        guidance -- never a generic "fresh Fresh" role-name duplication,
+        never a redundant instruction to re-run `inspect` from within its
+        own brief output, and always an explicit observation-snapshot/
+        re-read statement with authority/objective named unknown until
+        actually cited or read. Reuses existing synthetic fixture helpers
+        (``seed_public_distribution``); no real or disallowed sources are
+        read, and no target/profile mutation occurs.
+        """
+        with self.subTest(case="clean_new"):
+            project = self.temp / "brief-clean-new"
+            project.mkdir()
+            (project / "README.md").write_text(
+                "# Existing unadopted project\n", encoding="utf-8"
+            )
+            before = self.tree_snapshot(project)
+
+            result = self.run_inspect("auto", project=project, brief=True)
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(self.tree_snapshot(project), before)
+            self.assertFalse((project / ".writwall-bootstrap").exists())
+            self.assertFalse(self.state.exists())
+
+            stdout = result.stdout
+            self.assertNotIn("Copy this prompt into a fresh session", stdout)
+            self.assertNotIn("fresh Fresh", stdout)
+            self.assertNotIn("Re-enter a fresh", stdout)
+            self.assertIn("observation snapshot", stdout)
+            self.assertIn("re-read", stdout)
+            self.assertIn("unknown until", stdout)
+            self.assertIn(
+                "Selected role: Fresh Architect (conversation-first)", stdout
+            )
+            self.assertIn("Listen to the Owner's project pitch", stdout)
+            self.assertIn("CLAUDE.md", stdout)
+            self.assertIn("not yet materialized", stdout)
+
+        with self.subTest(case="incomplete_adoption"):
+            project = self.temp / "brief-incomplete-adoption"
+            settings = project / ".claude" / "settings.json"
+            settings.parent.mkdir(parents=True)
+            settings.write_text("{}\n", encoding="utf-8")
+            before = self.tree_snapshot(project)
+
+            result = self.run_inspect("auto", project=project, brief=True)
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(self.tree_snapshot(project), before)
+            self.assertFalse((project / ".writwall-bootstrap").exists())
+            self.assertFalse(self.state.exists())
+
+            stdout = result.stdout
+            self.assertNotIn("Copy this prompt into a fresh session", stdout)
+            self.assertNotIn("fresh Fresh", stdout)
+            self.assertNotIn("Re-enter a fresh", stdout)
+            self.assertIn("observation snapshot", stdout)
+            self.assertIn("re-read", stdout)
+            self.assertIn("unknown until", stdout)
+            self.assertIn(
+                "Selected role: Fresh external recovery coordinator", stdout
+            )
+            self.assertIn("Preserve and reconcile", stdout)
+            self.assertIn("do not reset or re-adopt", stdout)
+            self.assertIn("missing Owner decision", stdout)
+
+        with self.subTest(case="public_distribution"):
+            self.seed_public_distribution()
+            before = self.tree_snapshot(self.project)
+
+            result = self.run_inspect("auto", brief=True)
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(self.tree_snapshot(self.project), before)
+            self.assertFalse(self.output.exists())
+            self.assertFalse(self.state.exists())
+
+            stdout = result.stdout
+            self.assertNotIn("Copy this prompt into a fresh session", stdout)
+            self.assertNotIn("fresh Fresh", stdout)
+            self.assertNotIn("Re-enter a fresh", stdout)
+            self.assertIn("observation snapshot", stdout)
+            self.assertIn("re-read", stdout)
+            self.assertIn("unknown until", stdout)
+            self.assertIn("public distribution", stdout)
+            self.assertIn("not an adopter project", stdout)
+            self.assertIn("CONTRIBUTING.md", stdout)
+            self.assertIn("separate target project", stdout)
+
+    # -- Supplementary regressions for already-implemented behavior. Each
+    # test below covers a case identified by source review *after* the
+    # code it exercises was already implemented and confirmed GREEN in an
+    # earlier slice. These are coverage additions, not a newly claimed
+    # RED/GREEN chronology: no production behavior changes accompany them.
+
+    def test_bounded_frontmatter_status_supplementary_bom_and_crlf_coverage(self):
+        """Supplementary coverage for the already-implemented Amendment 1
+        bounded reader (`_bounded_frontmatter_status`): a leading UTF-8 BOM
+        and CRLF line endings on an otherwise well-formed header must still
+        classify correctly. Entirely synthetic content.
+        """
+        record = self.temp / "WO-BOM-CRLF.md"
+        record.write_bytes(
+            b"\xef\xbb\xbf---\r\nid: WO-BOM\r\nstatus: CLOSED\r\n---\r\n"
+            b"Synthetic body content, irrelevant to header parsing.\r\n"
+        )
+        status = starter_module._bounded_frontmatter_status(record)
+        self.assertEqual(status, "CLOSED")
+
+    def test_bounded_frontmatter_status_supplementary_finite_bound_failure(self):
+        """Supplementary coverage: a frontmatter exceeding the documented
+        byte bound fails closed with an explicit diagnostic naming the
+        bound, never silently truncated or accepted. Entirely synthetic
+        content.
+        """
+        oversized_header = (
+            b"---\nid: WO-OVERSIZED\n"
+            + b"x" * (starter_module._MAX_FRONTMATTER_BYTES + 100)
+            + b"\n---\n"
+        )
+        record = self.temp / "WO-OVERSIZED.md"
+        record.write_bytes(oversized_header)
+        with self.assertRaisesRegex(
+            starter_module.CoordinatorError, "exceeds the .*byte bound"
+        ):
+            starter_module._bounded_frontmatter_status(record)
+
+    def test_safe_relative_stat_supplementary_no_leaf_measurement_through_symlinked_intermediate_directory(self):
+        """Supplementary coverage for the already-corrected
+        `_safe_relative_stat` I/O ordering: exercises the specific shape
+        that correction targets -- a symlinked *intermediate* directory
+        component, not a symlinked leaf (the existing routing-boundary test
+        only covers the leaf case). Uses raw `Path.stat` instrumentation to
+        prove the outside-root file reached only through the symlinked
+        parent is never measured. Honestly skips if the executing account
+        lacks symlink privilege.
+        """
+        project = self.temp / "intermediate-symlink-project"
+        project.mkdir()
+        outside_dir = self.temp / "outside-directory"
+        outside_dir.mkdir()
+        outside_file = outside_dir / "leaf.md"
+        outside_content = b"Outside-root content reached through a symlinked parent.\n"
+        outside_file.write_bytes(outside_content)
+        linked_dir = project / "docs"
+        try:
+            linked_dir.symlink_to(outside_dir, target_is_directory=True)
+        except OSError as exc:
+            self.skipTest(f"symlink privilege unavailable: {exc}")
+
+        stat_calls: list[str] = []
+        original_stat = Path.stat
+
+        def recording_stat(self_path, *args, **kwargs):
+            stat_calls.append(str(self_path))
+            return original_stat(self_path, *args, **kwargs)
+
+        with mock.patch.object(Path, "stat", recording_stat):
+            size = starter_module._safe_relative_stat(project, "docs/leaf.md")
+
+        self.assertIsNone(size)
+        real_outside_file = str(outside_file.resolve())
+        self.assertFalse(
+            any(call == real_outside_file for call in stat_calls),
+            "a leaf reached only through a symlinked intermediate directory "
+            "must never be stat'd for its metadata",
+        )
+
+    def test_inspect_brief_explicit_architect_role_retained_on_adopted_lockout(self):
+        """Supplementary coverage for the already-implemented Architect-
+        scoped lockout guidance in `_render_lockout_brief`: an explicitly
+        selected `--role architect` on an adopted-lockout project must
+        receive Architect-scoped guidance, never the General planning/
+        dispatch instruction. Synthetic ratified fixture.
+        """
+        governance = self.project / "governance"
+        governance.mkdir()
+        for name in ("PLAN.md", "STATE.md", "ROUTING.md"):
+            (governance / name).write_text(f"# {name}\n", encoding="utf-8")
+        decision = governance / "decisions" / "DR-001.md"
+        decision.parent.mkdir()
+        decision.write_text(ratified_adoption_record(), encoding="utf-8")
+        before = self.tree_snapshot(self.project)
+
+        result = self.run_inspect("architect", brief=True)
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.tree_snapshot(self.project), before)
+        self.assertFalse(self.output.exists())
+        self.assertFalse(self.state.exists())
+
+        stdout = result.stdout
+        self.assertIn("Selected role: Fresh Architect", stdout)
+        self.assertIn("does not instruct a role change to General", stdout)
+        self.assertNotIn("Prepare, but do not activate", stdout)
 
     def test_local_inventory_git_status_disables_optional_index_writes(self):
         with mock.patch.object(starter_module.shutil, "which", return_value="git"), \

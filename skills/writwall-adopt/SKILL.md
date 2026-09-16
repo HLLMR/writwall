@@ -17,6 +17,15 @@ Never infer an active work order from prior chat or a closed history record.
 
 The day-zero command already made this complete bundle local. Do not fetch a
 replacement or register the wall before its recovery instructions are readable.
+
+For a compact, bounded re-entry recap instead of the full copy-paste prompt,
+a continuing agent may use `writwall inspect --project-root <repo> --brief`
+(**unreleased source work; not part of any published release**). It is
+opt-in, zero-write, bounded to 500 words of prose plus an unbounded evidence
+index of current files and explicit unknowns, and it never replaces this
+bundle's own instructions, the charter, or the ratified adoption record —
+treat any brief output the same as other unratified, re-readable evidence,
+never as authority.
 External-operation packet scaffolds are inert: blank fields authorize nothing,
 credentials remain outside them, and infrastructure, DNS, and mail Operators
 remain outside the repository wall unless they edit repository bytes.

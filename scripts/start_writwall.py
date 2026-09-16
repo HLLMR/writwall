@@ -447,6 +447,91 @@ def _classify_adoption_record(project: Path, resolved_path: Path) -> AdoptionEvi
     )
 
 
+_MAX_FRONTMATTER_BYTES = 8192
+_MAX_FRONTMATTER_LINES = 200
+_UTF8_BOM = b"\xef\xbb\xbf"
+
+
+def _bounded_frontmatter_status(path: Path) -> str | None:
+    """Read only a bounded opening frontmatter block via raw binary I/O.
+
+    Amendment 1 (WO-WW-028): historical work-order lifecycle classification
+    must never *read* a record's body, not merely avoid decoding it. This
+    opens the record unbuffered (``buffering=0``, so no internal buffered
+    reader can pull body bytes into memory ahead of this function's own
+    requests) and reads exactly one raw byte at a time, assembling only
+    complete header lines. It stops issuing further reads the instant the
+    closing delimiter line's own trailing newline has been consumed -- no
+    chunked read-ahead, and never a byte beyond that boundary is requested. A
+    header exceeding the byte or line bound, one missing a closing delimiter
+    within that bound, or one whose collected bytes are not valid frontmatter
+    text is explicit malformed metadata -- never a silent guess and never a
+    reason to read further into the body. A leading UTF-8 BOM and CRLF line
+    endings are tolerated on the header exactly as the existing
+    ``frontmatter_status`` tolerates them, so a well-formed record's status
+    interpretation is unchanged.
+    """
+    lines: list[bytes] = []
+    current_line = bytearray()
+    total_bytes = 0
+    closing_found = False
+    try:
+        with path.open("rb", buffering=0) as handle:
+            while True:
+                byte = handle.read(1)
+                if not byte:
+                    break
+                total_bytes += 1
+                if total_bytes > _MAX_FRONTMATTER_BYTES:
+                    raise CoordinatorError(
+                        "cannot read historical work-order record: frontmatter "
+                        f"exceeds the {_MAX_FRONTMATTER_BYTES}-byte bound"
+                    )
+                if byte != b"\n":
+                    current_line += byte
+                    continue
+                line = bytes(current_line)
+                current_line = bytearray()
+                if not lines:
+                    if line.startswith(_UTF8_BOM):
+                        line = line[len(_UTF8_BOM):]
+                    if line.rstrip(b"\r") != b"---":
+                        return None
+                    lines.append(b"---")
+                    continue
+                if len(lines) > _MAX_FRONTMATTER_LINES:
+                    raise CoordinatorError(
+                        "cannot read historical work-order record: frontmatter "
+                        f"exceeds the {_MAX_FRONTMATTER_LINES}-line bound"
+                    )
+                if line.rstrip(b"\r") == b"---":
+                    closing_found = True
+                    break
+                lines.append(line.rstrip(b"\r"))
+    except OSError as exc:
+        raise CoordinatorError(f"cannot read historical work-order record: {exc}") from exc
+
+    if not closing_found:
+        raise CoordinatorError(
+            "cannot read historical work-order record: no closing frontmatter "
+            f"delimiter within the {_MAX_FRONTMATTER_BYTES}-byte bound"
+        )
+    for raw_line in lines[1:]:
+        try:
+            line = raw_line.decode("utf-8")
+        except UnicodeError as exc:
+            raise CoordinatorError(
+                "cannot read historical work-order record: malformed "
+                f"frontmatter encoding: {exc}"
+            ) from exc
+        if line.startswith((" ", "\t")):
+            continue
+        match = re.fullmatch(r"status:\s*(['\"]?)([^'\"#]+)\1\s*(?:#.*)?", line)
+        if match:
+            return match.group(2).strip()
+    return None
+
+
 def classify_project(project: Path) -> ObservedState:
     """Classify lifecycle state from repository bytes, never chat context."""
     bootstrap = project / OUTPUT_NAME
@@ -594,7 +679,7 @@ def classify_project(project: Path) -> ObservedState:
                 raise CoordinatorError(
                     "inconsistent state: historical work-order record is not a file"
                 )
-            if frontmatter_status(safe_path) in {"CLOSED", "COMPLETE"}:
+            if _bounded_frontmatter_status(safe_path) in {"CLOSED", "COMPLETE"}:
                 closed_records.append(safe_path)
 
     resolved_adoption_paths = []
@@ -1122,6 +1207,498 @@ then ask what the Owner wants to explore. This explicit role selection grants
 no mutation or lifecycle authority."""
 
 
+_ROUTING_LINE = re.compile(r"(?m)^Routing:[ \t]*(.+)$")
+_OBJECTIVE_HEADING = re.compile(r"(?im)^#{1,6}[ \t]*Objective\b")
+_SAFE_ROUTING_SHAPE = re.compile(r"[A-Za-z0-9_.\-/]+\.[A-Za-z0-9]+")
+_EXCLUDED_ROUTING_PREFIXES = (
+    "governance/history/", "governance/archive/", "governance/rfis/",
+    "archive/", "dist/",
+)
+
+
+def _routing_referenced_paths(text: str) -> tuple[str, ...]:
+    """Extract whole candidate words from a recognized ``Routing:`` line only.
+
+    This is one narrow, documented syntax, not a prose parser: only
+    whitespace-delimited *whole words* on a line beginning with the literal
+    prefix ``Routing:`` are considered, with trailing `,;.` sentence
+    punctuation stripped. Unlike a substring search, a candidate is always
+    judged as one complete word -- an unsupported token (a URL, a
+    digest-decorated reference, an escape) is never quietly reduced to a
+    regex-matched fragment that happens to look like a valid path. No other
+    work-order text is scanned, and no routing or approval semantics are
+    inferred from the surrounding prose.
+    """
+    candidates: list[str] = []
+    for match in _ROUTING_LINE.finditer(text):
+        for raw_word in match.group(1).split():
+            candidate = raw_word.strip(",;").rstrip(".")
+            if not candidate:
+                continue
+            if "/" not in candidate and "." not in candidate:
+                continue  # not path-like at all (e.g. "see", "and")
+            if candidate not in candidates:
+                candidates.append(candidate)
+    return tuple(candidates)
+
+
+def _is_safe_relative_reference_shape(candidate: str) -> bool:
+    """A conservative, narrowly documented safe-relative-path shape.
+
+    True only for a plain relative file path: letters/digits/underscore/
+    hyphen/dot/slash characters throughout, ending in an extension, not
+    absolute, and with no ``.``/``..`` path segment. A URL (``://``), a
+    digest or version decoration (``@``), an embedded scheme/port separator
+    (``:``), or any other shape is explicit unsupported syntax -- rejected
+    outright, never partially matched or guessed at.
+    """
+    if not candidate or candidate.startswith("/"):
+        return False
+    if "://" in candidate or "@" in candidate or ":" in candidate:
+        return False
+    if not _SAFE_ROUTING_SHAPE.fullmatch(candidate):
+        return False
+    return all(part not in ("", ".", "..") for part in candidate.split("/"))
+
+
+_EXCLUDED_ROUTING_PREFIX_SEGMENTS = tuple(
+    tuple(part.casefold() for part in prefix.strip("/").split("/") if part)
+    for prefix in _EXCLUDED_ROUTING_PREFIXES
+)
+
+
+def _normalized_alias_segments(candidate: str) -> tuple[str, ...]:
+    """Casefold each path segment and strip a Windows trailing-dot alias.
+
+    This performs alias *rejection* only, comparing normalized segments
+    against excluded prefixes; it never rewrites a candidate into a
+    different path that is then read or measured, and it touches no
+    filesystem I/O -- string normalization only.
+    """
+    return tuple(
+        segment.rstrip(".").casefold()
+        for segment in candidate.split("/")
+        if segment not in ("", ".")
+    )
+
+
+def _is_excluded_routing_reference(candidate: str) -> bool:
+    """True for a path-shaped reference under a read-denied protected prefix.
+
+    Comparison is casefolded and per-segment, with a Windows trailing-dot
+    directory alias stripped from each segment before comparison, so a
+    differently-cased or dot-decorated alias of an excluded prefix is
+    rejected exactly like the canonical form -- entirely before any
+    filesystem probe. Such a reference is never stat'd, read, or measured
+    for this brief, regardless of whether it happens to exist and be
+    readable, because its prefix is excluded evidence, not because of any
+    observed I/O outcome.
+    """
+    segments = _normalized_alias_segments(candidate)
+    return any(
+        segments[: len(prefix_segments)] == prefix_segments
+        for prefix_segments in _EXCLUDED_ROUTING_PREFIX_SEGMENTS
+    )
+
+
+def _safe_relative_stat(project: Path, relative: str) -> int | None:
+    """Return a project-relative regular file's byte size, or None.
+
+    Containment and link-safety checks run first: `_safe_project_path` is
+    called before any other filesystem probe of the candidate, and its own
+    component-wise `_is_linklike` checks run before its `resolve()` call.
+    Only a path that has already passed that safety check is ever measured.
+    None covers missing, unsafe (symlink/escape/reparse), and non-regular
+    paths alike: a referenced-but-absent or unsupported path is a pending
+    evidence gap for the caller to report, never a coordinator error.
+    """
+    candidate = project / relative
+    try:
+        resolved = _safe_project_path(project, candidate, "referenced evidence path")
+    except CoordinatorError:
+        return None
+    if not resolved.is_file():
+        return None
+    try:
+        return resolved.stat().st_size
+    except OSError:
+        return None
+
+
+def _render_active_work_order_brief(
+    project: Path, state: ObservedState, selected_role: str
+) -> str:
+    """The active-work-order compact brief.
+
+    Cites only recognized mandatory sources (charter, Plan, Routing, the
+    pointed work order) and paths named on a work order's own ``Routing:``
+    line; it never infers an executable grant from status ``ACTIVE`` alone,
+    and an unresolved or unsupported reference stays visibly pending rather
+    than silently dropped or claimed resolved.
+    """
+    work_order_relative = state.active_work_order or ""
+    try:
+        work_order_text = (project / work_order_relative).read_text(
+            encoding="utf-8-sig"
+        )
+    except (OSError, UnicodeError):
+        work_order_text = ""
+
+    mandatory = [
+        (relative, _safe_relative_stat(project, relative))
+        for relative in ("CLAUDE.md", "governance/PLAN.md",
+                          "governance/ROUTING.md", "governance/STATE.md",
+                          work_order_relative)
+    ]
+    mandatory_complete = bool(work_order_relative) and all(
+        size is not None for _, size in mandatory
+    )
+    mandatory_lines = "\n".join(
+        f"- {relative} ({size} bytes)" if size is not None
+        else f"- {relative}: unresolved (not found or unsafe); remains pending"
+        for relative, size in mandatory
+    )
+
+    objective_line = (
+        f"- {work_order_relative} carries a recognized Objective heading "
+        "(content not summarized here)."
+        if _OBJECTIVE_HEADING.search(work_order_text) else
+        f"- {work_order_relative} carries no recognized Objective heading; unresolved."
+    )
+
+    routing_candidates = _routing_referenced_paths(work_order_text)
+    referenced_lines = []
+    routing_fully_resolved = bool(routing_candidates)
+    for relative in routing_candidates:
+        if not _is_safe_relative_reference_shape(relative):
+            referenced_lines.append(
+                f"- {relative}: unsupported reference form (not the "
+                "documented safe relative-path syntax: no URL, digest/"
+                "version decoration, or escape is parsed); remains pending, "
+                "not resolved"
+            )
+            routing_fully_resolved = False
+            continue
+        if _is_excluded_routing_reference(relative):
+            referenced_lines.append(
+                f"- {relative}: excluded (protected read-denied path "
+                "prefix); never read or measured by this brief"
+            )
+            routing_fully_resolved = False
+            continue
+        size = _safe_relative_stat(project, relative)
+        if size is not None:
+            referenced_lines.append(f"- {relative} ({size} bytes)")
+        else:
+            referenced_lines.append(
+                f"- {relative}: referenced but unresolved (not found or not a "
+                "supported reference); remains pending"
+            )
+            routing_fully_resolved = False
+    referenced_block = "\n".join(referenced_lines) or (
+        "- none cited on a recognized `Routing:` line; routing remains "
+        "explicitly unresolved, not verified complete"
+    )
+
+    if not mandatory_complete:
+        next_step = (
+            "This is an observation snapshot; re-read the mandatory "
+            "evidence in the index below before acting. Mandatory evidence "
+            "is incomplete, so no role may proceed to execution until every "
+            "mandatory source resolves; this brief does not authorize "
+            "execution."
+        )
+    elif routing_fully_resolved:
+        next_step = (
+            "This is an observation snapshot; re-read the mandatory "
+            "evidence in the index below before acting. Every recognized "
+            "mandatory source and routed reference currently resolves; "
+            f"role eligibility remains the bounded Operator for "
+            f"{work_order_relative}, but this brief does not authorize "
+            "execution -- re-enter a fresh Operator session, confirm the "
+            "actual grant authority, and confirm the required live-wall "
+            "canary before any mutation. Status ACTIVE alone is not an "
+            "executable grant."
+        )
+    else:
+        next_step = (
+            "This is an observation snapshot; re-read the mandatory "
+            "evidence in the index below before acting. Role eligibility "
+            f"remains the bounded Operator for {work_order_relative}, but "
+            "unresolved, unsafe, or unsupported routing reference(s) remain "
+            "in the index below, so this brief does not authorize "
+            "execution. Re-enter a fresh Operator session, resolve or "
+            "dispose every routing reference from current repository "
+            "bytes, and confirm the actual grant authority and required "
+            "live-wall canary before any mutation."
+        )
+
+    return f"""### Compact continuation brief
+
+Prose word budget: 500 words maximum; the evidence index excluded below is not counted against it.
+
+## Observed lifecycle and objective evidence
+
+- Canonical project root: {project.as_posix()}
+- Observed lifecycle state: {state.name}
+- Selected role: {selected_role}
+{objective_line}
+
+## Decision and authority references
+
+- Activation pointer names {work_order_relative}; its frontmatter status is ACTIVE.
+- Observed dispatch is evidence of an issued work order, not inferred Owner approval of its contents.
+
+## Proposals (not approval)
+
+None. This brief links evidence only; it proposes nothing and ratifies nothing.
+
+## Next permitted step or unresolved condition
+
+{next_step}
+
+## Evidence index (outside the prose word budget)
+
+### Mandatory evidence
+
+{mandatory_lines}
+
+### Optional references
+
+{referenced_block}
+
+Evidence above is summarized only; bytes do not measure tokens, context, or cost.
+"""
+
+
+_ADOPTION_EVIDENCE_LINE = re.compile(r"ratified adoption evidence (?:exist|observed): (\S+)")
+
+
+def _lockout_adoption_relative(state: ObservedState) -> str | None:
+    for item in state.evidence:
+        match = _ADOPTION_EVIDENCE_LINE.search(item)
+        if match:
+            return match.group(1)
+    return None
+
+
+def _lockout_aggregate_history_line(state: ObservedState) -> str | None:
+    for item in state.evidence:
+        if "closed work-order record" in item:
+            return item
+    return None
+
+
+def _render_lockout_brief(
+    project: Path, state: ObservedState, selected_role: str
+) -> str:
+    """The adopted/retired-lockout compact brief.
+
+    Cites only recognized current-governance mandatory sources (charter,
+    Plan, State, Routing, and the current ratified adoption record) with
+    exact byte sizes. A retired lockout's closed-history evidence is passed
+    through only as the classifier's own already-computed aggregate count --
+    never a historical record's own path, filename, or body, which this
+    function never reads or indexes. Guidance never instructs a mutation,
+    and never instructs an explicitly selected read-only Architect to become
+    the General.
+    """
+    adoption_relative = _lockout_adoption_relative(state)
+    history_line = _lockout_aggregate_history_line(state)
+
+    mandatory = [
+        (relative, _safe_relative_stat(project, relative))
+        for relative in ("CLAUDE.md", "governance/PLAN.md",
+                          "governance/STATE.md", "governance/ROUTING.md")
+    ]
+    if adoption_relative:
+        mandatory.append(
+            (adoption_relative, _safe_relative_stat(project, adoption_relative))
+        )
+    else:
+        mandatory.append(("(no ratified adoption record path observed)", None))
+    mandatory_lines = "\n".join(
+        f"- {relative} ({size} bytes)" if size is not None
+        else f"- {relative}: unresolved (not found or unsafe); remains pending"
+        for relative, size in mandatory
+    )
+
+    history_evidence_line = (
+        f"- {history_line} (aggregate count only; no historical pathname or "
+        "body is read or indexed by this brief)."
+        if history_line else ""
+    )
+
+    is_architect = selected_role == "Fresh Architect"
+    next_step = (
+        "This is an observation snapshot; re-read the mandatory evidence in "
+        "the index below before acting. Begin read-only as the Architect for "
+        "this existing project; this brief confers no mutation authority and "
+        "does not instruct a role change to General."
+        if is_architect else
+        "This is an observation snapshot; re-read the mandatory evidence in "
+        "the index below before acting. Prepare, but do not activate, the "
+        "smallest genuine next work order or bounded Operator packet for a "
+        "fresh General; this brief confers no mutation authority."
+    )
+
+    return f"""### Compact continuation brief
+
+Prose word budget: 500 words maximum; the evidence index excluded below is not counted against it.
+
+## Observed lifecycle and objective evidence
+
+- Canonical project root: {project.as_posix()}
+- Observed lifecycle state: {state.name}
+- Selected role: {selected_role}
+{history_evidence_line}
+
+## Decision and authority references
+
+- Ratified adoption evidence was observed for this project; its content is
+  not read or summarized here beyond its existence and location. See the
+  mandatory evidence index below.
+- Unknown: this brief does not infer Owner approval, a resolved routing
+  contradiction, or a project objective from any record's mere existence.
+
+## Proposals (not approval)
+
+None. This brief links evidence only; it proposes nothing and ratifies nothing.
+
+## Next permitted step or unresolved condition
+
+{next_step}
+
+## Evidence index (outside the prose word budget)
+
+### Mandatory evidence
+
+{mandatory_lines}
+
+### Optional references
+
+None indexed by this compact brief.
+
+Evidence above is summarized only; bytes do not measure tokens, context, or cost.
+"""
+
+
+_RECOGNIZED_GOVERNANCE_SOURCES = (
+    "CLAUDE.md", "governance/PLAN.md", "governance/STATE.md",
+    "governance/ROUTING.md",
+)
+
+
+def _entry_state_next_step(state: ObservedState, selected_role: str) -> str:
+    """Concrete, state-specific, read-only next-step guidance.
+
+    Every branch states this is an observation snapshot requiring a re-read
+    of current bytes, and states plainly that objective/authority remain
+    unknown until actually cited or read -- never inferred from a state
+    name or from the mere presence or absence of files.
+    """
+    if state.name == "clean_new":
+        return (
+            "This is an observation snapshot; re-read current repository "
+            "bytes before acting. Objective and authority remain unknown "
+            "until the Owner states them in conversation. A new or "
+            "existing ungoverned project is not broken and does not "
+            "require adoption before this conversation. Listen to the "
+            "Owner's project pitch as the fresh Architect; do not infer "
+            "intent, an objective, or a problem from the absence of files."
+        )
+    if state.name == "partial_bootstrap":
+        return (
+            "This is an observation snapshot; re-read current repository "
+            "bytes before acting. Objective and authority remain unknown "
+            "until actually read from the existing partial material. "
+            "Preserve and reconcile that material; do not reset or "
+            "re-adopt from scratch. Obtain the missing Owner decision(s) "
+            "and ratify them before any adoption mechanics continue."
+        )
+    if state.name == "public_distribution":
+        return (
+            "This is an observation snapshot; re-read current repository "
+            "bytes before acting. Objective and authority remain unknown "
+            "until read from a specific target project. This checkout is "
+            "the Writwall public distribution, not an adopter project; its "
+            "retained governance records are source evidence, never this "
+            "checkout's own adoption authority. Follow CONTRIBUTING.md to "
+            "contribute here, or choose a separate target project to adopt "
+            "or explore elsewhere."
+        )
+    return (
+        "This is an observation snapshot; re-read current repository bytes "
+        f"before acting. Role eligibility remains {selected_role}; "
+        "objective and authority remain unknown until actually cited or "
+        "read from current bytes."
+    )
+
+
+def render_compact_brief(project: Path, state: ObservedState, selected_role: str) -> str:
+    """Render the opt-in ``--brief`` compact continuation block.
+
+    Replaces the full copy-paste prompt entirely so the emitted brief stays
+    inside its own 500-word prose budget; the evidence index below the final
+    heading is deliberately excluded from that budget and labeled as such.
+    """
+    if state.name == "active_work_order":
+        return _render_active_work_order_brief(project, state, selected_role)
+    if state.name in {"adopted_lockout", "retired_lockout"}:
+        return _render_lockout_brief(project, state, selected_role)
+    evidence_lines = "\n".join(f"- {item}" for item in state.evidence) or "- none observed"
+    active = (
+        f"\n- Pointed work order: {state.active_work_order}"
+        if state.active_work_order else ""
+    )
+    governance_lines = ""
+    if state.name in {"clean_new", "partial_bootstrap"}:
+        governance_lines = "\n".join(
+            f"- {relative} ({size} bytes)" if size is not None
+            else f"- {relative}: not yet materialized"
+            for relative, size in (
+                (relative, _safe_relative_stat(project, relative))
+                for relative in _RECOGNIZED_GOVERNANCE_SOURCES
+            )
+        )
+        governance_lines = "\n" + governance_lines
+    next_step = _entry_state_next_step(state, selected_role)
+    return f"""### Compact continuation brief
+
+Prose word budget: 500 words maximum; the evidence index excluded below is not counted against it.
+
+## Observed lifecycle and objective evidence
+
+- Canonical project root: {project.as_posix()}
+- Observed lifecycle state: {state.name}
+- Selected role: {selected_role}
+
+## Decision and authority references
+
+Unknown: no decision or authority record was read by this compact brief.
+
+## Proposals (not approval)
+
+None. This brief links evidence only; it proposes nothing and ratifies nothing.
+
+## Next permitted step or unresolved condition
+
+{next_step}
+
+## Evidence index (outside the prose word budget)
+
+### Mandatory evidence
+
+{evidence_lines}{active}{governance_lines}
+
+### Optional references
+
+None indexed by this compact brief.
+
+Evidence above is summarized only; bytes do not measure tokens, context, or cost.
+"""
+
+
 def inspect_main(argv: list[str] | None = None) -> int:
     """Print a role handoff without creating repository or profile state."""
     parser = argparse.ArgumentParser(
@@ -1132,6 +1709,7 @@ def inspect_main(argv: list[str] | None = None) -> int:
         "--role", choices=("auto", "architect", "general", "recovery"),
         default="auto",
     )
+    parser.add_argument("--brief", action="store_true")
     args = parser.parse_args(argv)
     try:
         project = resolve_project_root(args.project_root)
@@ -1183,6 +1761,11 @@ def inspect_main(argv: list[str] | None = None) -> int:
         return 2
     print(f"Canonical project root: {project.as_posix()}")
     print(f"Observed lifecycle state: {state.name}")
+    if args.brief:
+        print(f"Selected role: {selected_role}")
+        print()
+        print(render_compact_brief(project, state, selected_role))
+        return 0
     for item in inspection_evidence:
         print(f"  - {item}")
     print(f"Selected role: {selected_role}")

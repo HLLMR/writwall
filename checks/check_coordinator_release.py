@@ -312,6 +312,60 @@ def python_bytecode_residue(root: Path) -> list[str]:
     )
 
 
+def profile_state_snapshot(path: Path) -> str | None:
+    """A comparable snapshot of isolated profile state, or None if absent.
+
+    Used only to prove a specific `--brief` invocation did not create or
+    change isolated `WRITWALL_STATE_HOME` content; it is never a claim about
+    the whole check's profile usage.
+    """
+    return tree_digest(path) if path.exists() else None
+
+
+def verify_installed_brief_contract(stdout: str, surface: str) -> None:
+    """Verify the shared installed `--brief` contract against real output.
+
+    Checks the labeled compact-brief marker, that the evidence index heading
+    exists and follows the brief marker, that the prose *before* that
+    heading stays within its own 500-whitespace-word budget, that the
+    required bytes-vs-tokens caveat appears in the evidence index, and that
+    no full ordinary copy-paste prompt was emitted. This is a real installed-
+    command output check, never a source-string substitute.
+    """
+    if "### Compact continuation brief" not in stdout:
+        raise ReleaseCheckError(
+            f"installed brief ({surface}) omitted the compact-brief marker"
+        )
+    index_heading = "## Evidence index (outside the prose word budget)"
+    if index_heading not in stdout:
+        raise ReleaseCheckError(
+            f"installed brief ({surface}) omitted the evidence index heading"
+        )
+    brief_start = stdout.index("### Compact continuation brief")
+    index_start = stdout.index(index_heading)
+    if not brief_start < index_start:
+        raise ReleaseCheckError(
+            f"installed brief ({surface}) evidence index precedes the brief marker"
+        )
+    prose = stdout[brief_start:index_start]
+    word_count = len(prose.split())
+    if word_count > 500:
+        raise ReleaseCheckError(
+            f"installed brief ({surface}) prose exceeded the 500-word budget: "
+            f"{word_count} words"
+        )
+    evidence_index = " ".join(stdout[index_start:].split())
+    if "bytes do not measure tokens, context, or cost" not in evidence_index:
+        raise ReleaseCheckError(
+            f"installed brief ({surface}) evidence index omitted the "
+            "bytes-vs-tokens caveat"
+        )
+    if "Copy this prompt into a fresh session" in stdout:
+        raise ReleaseCheckError(
+            f"installed brief ({surface}) emitted the full ordinary prompt"
+        )
+
+
 def verify_authorization_continuity_content(text: str, surface: str) -> None:
     """Require every B.3.3 field label and B.3.4 outcome sentence verbatim.
 
@@ -561,6 +615,9 @@ def check_candidate(candidate: Path, expected_tag: str) -> None:
         (decisions / "DR-001.md").write_text(
             RATIFIED_ADOPTION_RECORD, encoding="utf-8", newline="\n"
         )
+        (adopted / "CLAUDE.md").write_text(
+            "# Charter\n\nA.1 Prohibitions apply.\n", encoding="utf-8", newline="\n"
+        )
         adopted_before = tree_digest(adopted)
         adopted_result = run(
             [str(command), "start", "--project-root", str(adopted)],
@@ -640,6 +697,83 @@ def check_candidate(candidate: Path, expected_tag: str) -> None:
                 "installed inspect general route changed target bytes"
             )
 
+        brief_new_project = workspace / "brief-new-project"
+        brief_new_project.mkdir()
+        brief_new_before = tree_digest(brief_new_project)
+        brief_new_profile_before = profile_state_snapshot(state)
+        brief_new_result = run(
+            [
+                str(command), "inspect", "--project-root", str(brief_new_project),
+                "--role", "auto", "--brief",
+            ],
+            cwd=workspace, environment=environment,
+            label="installed brief (clean/new)", closed_stdin=True,
+        )
+        verify_installed_brief_contract(brief_new_result.stdout, "clean/new")
+        required_new_brief_text = (
+            "Observed lifecycle state: clean_new",
+            "Listen to the Owner's project pitch",
+            "observation snapshot",
+            "unknown until",
+        )
+        missing_new_brief_text = [
+            text for text in required_new_brief_text
+            if text not in brief_new_result.stdout
+        ]
+        if missing_new_brief_text:
+            raise ReleaseCheckError(
+                "installed brief (clean/new) omitted: "
+                + ", ".join(missing_new_brief_text)
+            )
+        if (brief_new_project / ".writwall-bootstrap").exists():
+            raise ReleaseCheckError(
+                "installed brief (clean/new) created a bootstrap directory"
+            )
+        if tree_digest(brief_new_project) != brief_new_before:
+            raise ReleaseCheckError(
+                "installed brief (clean/new) changed target bytes"
+            )
+        if profile_state_snapshot(state) != brief_new_profile_before:
+            raise ReleaseCheckError(
+                "installed brief (clean/new) mutated isolated profile state"
+            )
+
+        adopted_brief_profile_before = profile_state_snapshot(state)
+        adopted_brief_result = run(
+            [
+                str(command), "inspect", "--project-root", str(adopted),
+                "--role", "auto", "--brief",
+            ],
+            cwd=workspace, environment=environment,
+            label="installed brief (adopted lockout)", closed_stdin=True,
+        )
+        verify_installed_brief_contract(adopted_brief_result.stdout, "adopted lockout")
+        required_adopted_brief_text = (
+            "Observed lifecycle state: adopted_lockout",
+            "Selected role: Fresh General",
+            "Prepare, but do not activate",
+            "observation snapshot",
+            "CLAUDE.md",
+            "governance/decisions/DR-001.md",
+        )
+        missing_adopted_brief_text = [
+            text for text in required_adopted_brief_text
+            if text not in adopted_brief_result.stdout
+        ]
+        if missing_adopted_brief_text:
+            raise ReleaseCheckError(
+                "installed brief (adopted lockout) omitted: "
+                + ", ".join(missing_adopted_brief_text)
+            )
+        if tree_digest(adopted) != adopted_before:
+            raise ReleaseCheckError(
+                "installed brief (adopted lockout) changed target bytes"
+            )
+        if profile_state_snapshot(state) != adopted_brief_profile_before:
+            raise ReleaseCheckError(
+                "installed brief (adopted lockout) mutated isolated profile state"
+            )
+
         retired = workspace / "retired-project"
         retired_governance = retired / "governance"
         retired_decisions = retired_governance / "decisions"
@@ -669,6 +803,82 @@ def check_candidate(candidate: Path, expected_tag: str) -> None:
         if tree_digest(retired) != retired_before:
             raise ReleaseCheckError(
                 "installed retired-lockout route changed target bytes"
+            )
+
+        active_project = workspace / "active-work-order-project"
+        active_governance = active_project / "governance"
+        active_governance.mkdir(parents=True)
+        (active_project / "CLAUDE.md").write_text(
+            "# Charter\n\nA.1 Prohibitions apply.\n", encoding="utf-8", newline="\n"
+        )
+        for name in ("PLAN.md", "STATE.md", "ROUTING.md"):
+            (active_governance / name).write_text(
+                f"# {name}\n", encoding="utf-8", newline="\n"
+            )
+        active_docs = active_project / "docs"
+        active_docs.mkdir()
+        (active_docs / "example-requirement.md").write_text(
+            "# Example current requirement\n\nSafely referenced.\n",
+            encoding="utf-8", newline="\n",
+        )
+        active_work_orders = active_governance / "work-orders"
+        active_work_orders.mkdir()
+        (active_work_orders / "WO-001.md").write_text(
+            "---\nid: WO-001\nstatus: ACTIVE\n---\n"
+            "# WO-001: Example\n\n"
+            "## Objective\n\n"
+            "Do the bounded thing.\n\n"
+            "Routing: see docs/example-requirement.md, docs/missing-current.md "
+            "and docs/pinned.md@sha256:" + ("de" * 32) + ".\n",
+            encoding="utf-8", newline="\n",
+        )
+        active_pointer = active_project / ".claude" / "active-wo.txt"
+        active_pointer.parent.mkdir(parents=True)
+        active_pointer.write_text(
+            "governance/work-orders/WO-001.md\n", encoding="utf-8", newline="\n"
+        )
+        active_before = tree_digest(active_project)
+        active_brief_profile_before = profile_state_snapshot(state)
+        active_brief_result = run(
+            [
+                str(command), "inspect", "--project-root", str(active_project),
+                "--role", "auto", "--brief",
+            ],
+            cwd=workspace, environment=environment,
+            label="installed brief (active work order)", closed_stdin=True,
+        )
+        verify_installed_brief_contract(
+            active_brief_result.stdout, "active work order"
+        )
+        required_active_brief_text = (
+            "Observed lifecycle state: active_work_order",
+            "docs/example-requirement.md",
+            "docs/missing-current.md",
+            "remains pending",
+            "does not authorize execution",
+            "observation snapshot",
+        )
+        missing_active_brief_text = [
+            text for text in required_active_brief_text
+            if text not in active_brief_result.stdout
+        ]
+        if missing_active_brief_text:
+            raise ReleaseCheckError(
+                "installed brief (active work order) omitted: "
+                + ", ".join(missing_active_brief_text)
+            )
+        if "The only permitted next role is the bounded Operator" in active_brief_result.stdout:
+            raise ReleaseCheckError(
+                "installed brief (active work order) claimed confident execution "
+                "readiness despite unresolved routing material"
+            )
+        if tree_digest(active_project) != active_before:
+            raise ReleaseCheckError(
+                "installed brief (active work order) changed target bytes"
+            )
+        if profile_state_snapshot(state) != active_brief_profile_before:
+            raise ReleaseCheckError(
+                "installed brief (active work order) mutated isolated profile state"
             )
 
         draft = workspace / "draft-unratified-project"
@@ -795,6 +1005,10 @@ def check_candidate(candidate: Path, expected_tag: str) -> None:
     print("                      path fails closed; zero target-byte change")
     print("  nested worktree   : installed coordinator stops with a worktree diagnostic")
     print("  candidate unchanged: complete-tree digest preserved")
+    print("  installed brief   : new/adopted/active --brief produced labeled sections, "
+          "a <=500-word prose budget, an evidence index with byte sizes and explicit "
+          "unknowns, correct lifecycle guidance, no full ordinary prompt, and zero "
+          "target/profile mutation")
     print("  authorization contract: GENERAL/OPERATOR/REPOSITORY-OPERATOR, the "
           "external Operator packet, and General inspect output all carry the "
           "required authorization-continuity labels and outcome sentences")

@@ -28,6 +28,7 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("auto", "architect", "general", "recovery"),
         default="auto",
     )
+    inspect.add_argument("--brief", action="store_true")
     privacy = commands.add_parser(
         "privacy",
         description="Manage the local project privacy screen.",
