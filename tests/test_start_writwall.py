@@ -220,11 +220,12 @@ class StartWritwallTests(unittest.TestCase):
             timeout=60,
         )
 
-    def run_lifecycle_start(self, project: Path | None = None):
+    def run_lifecycle_start(self, project: Path | None = None, *extra: str):
         return subprocess.run(
             [
                 sys.executable, "-B", "-m", "writwall_cli", "start",
                 "--project-root", str(project or self.project),
+                *extra,
             ],
             cwd=REPO_ROOT,
             env=self.environment(),
@@ -489,6 +490,177 @@ class StartWritwallTests(unittest.TestCase):
             "mail-routing-cutover.md",
             "mailbox-data-migration.md",
         }.issubset(packets))
+
+    def test_operation_packet_names_operational_task_elicits_bounded_inventory(self):
+        """RED: explicit operational-task classification bounds a preflight.
+
+        Ordinary local coding (no `operational_task`) gets no operational
+        questionnaire and stays byte-identical to today's packet. An explicit
+        classification (deployment/migration/source_freeze/cutover) adds a
+        bounded inventory naming alternate writers/engines/schedulers,
+        observation time, access unknowns, transition revalidation, rollback,
+        and the last safe stop -- guidance only, never real host discovery.
+        """
+        ordinary = starter_module.operation_packet("Local coding task", "/example/root")
+        self.assertNotIn("Operational task classification", ordinary)
+        self.assertNotIn("Alternate writers", ordinary)
+
+        for task in ("deployment", "migration", "source_freeze", "cutover"):
+            with self.subTest(operational_task=task):
+                packet = starter_module.operation_packet(
+                    "Example operational step", "/example/root",
+                    operational_task=task,
+                )
+                self.assertIn(f"Operational task classification: {task}", packet)
+                self.assertIn("Alternate writers/engines/schedulers", packet)
+                self.assertIn("unknown", packet.lower())
+                self.assertIn("Observation time", packet)
+                self.assertIn("Revalidate", packet)
+                self.assertIn("Last safe stop", packet)
+
+    def test_external_operator_task_classification_reaches_packet_and_intake(self):
+        """RED (next slice, not yet implemented): explicit, opt-in, per-Operator
+        operational classification -- never inferred from the function's own
+        free-text name -- must reach the generated Operator packet file and
+        intake.json unchanged for ordinary/unclassified functions.
+        """
+        result = self.run_idea_start(
+            "--external-operator", "DNS cutover",
+            "--external-operator-task", "DNS cutover=cutover",
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        packet = (self.output / "operations" / "dns-cutover.md").read_text(encoding="utf-8")
+        self.assertIn("Operational task classification: cutover", packet)
+        intake = self.intake()
+        self.assertEqual(intake["external_operator_tasks"], {"DNS cutover": "cutover"})
+
+    # WO-WW-029 post-implementation coverage (already-implemented behavior;
+    # not new RED claims): adversarial and backward-compatibility coverage
+    # of the --external-operator-task CLI contract across every intake path.
+
+    def test_external_operator_task_rejects_malformed_unmatched_invalid_duplicate_before_output(self):
+        cases = {
+            "malformed": (
+                ("--external-operator", "DNS cutover",
+                 "--external-operator-task", "not-a-pair"),
+                "malformed --external-operator-task",
+            ),
+            "unmatched name": (
+                ("--external-operator", "DNS cutover",
+                 "--external-operator-task", "Wrong function=cutover"),
+                "unmatched external Operator function",
+            ),
+            "invalid classification": (
+                ("--external-operator", "DNS cutover",
+                 "--external-operator-task", "DNS cutover=not-a-real-classification"),
+                "unsupported operational task classification",
+            ),
+            "duplicate name": (
+                ("--external-operator", "DNS cutover",
+                 "--external-operator-task", "DNS cutover=cutover",
+                 "--external-operator-task", "DNS cutover=migration"),
+                "duplicate --external-operator-task classification",
+            ),
+        }
+        for label, (extra, expected_diagnostic) in cases.items():
+            with self.subTest(case=label):
+                project = self.temp / f"reject-{label.replace(' ', '-')}"
+                project.mkdir()
+                result = self.run_idea_start(*extra, project=project)
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn(expected_diagnostic, result.stderr)
+                self.assertFalse((project / starter_module.OUTPUT_NAME).exists())
+
+    def test_ordinary_local_coding_receives_no_operational_questionnaire(self):
+        result = self.run_idea_start("--external-operator", "Local coding helper")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        packets = list((self.output / "operations").glob("*.md"))
+        self.assertTrue(packets)
+        for packet_path in packets:
+            text = packet_path.read_text(encoding="utf-8")
+            self.assertNotIn("Operational task classification", text)
+            self.assertNotIn("## Operational preflight", text)
+        self.assertEqual(self.intake()["external_operator_tasks"], {})
+
+    def test_legacy_free_text_operator_names_are_never_inferred_as_classified(self):
+        result = self.run_idea_start(
+            "--external-operator",
+            "Cutover step for production deployment and migration",
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        packets = list((self.output / "operations").glob("*.md"))
+        self.assertTrue(packets)
+        for packet_path in packets:
+            text = packet_path.read_text(encoding="utf-8")
+            self.assertNotIn("Operational task classification", text)
+            self.assertNotIn("## Operational preflight", text)
+        self.assertEqual(self.intake()["external_operator_tasks"], {})
+
+    def test_all_four_operational_task_classifications_reach_packet_and_intake(self):
+        for task in ("deployment", "migration", "source_freeze", "cutover"):
+            with self.subTest(operational_task=task):
+                project = self.temp / f"classified-{task}"
+                project.mkdir()
+                result = self.run_idea_start(
+                    "--external-operator", "Example operator",
+                    "--external-operator-task", f"Example operator={task}",
+                    project=project,
+                )
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                output = project / starter_module.OUTPUT_NAME
+                packets = list((output / "operations").glob("*.md"))
+                self.assertTrue(packets)
+                for packet_path in packets:
+                    text = packet_path.read_text(encoding="utf-8")
+                    self.assertIn(f"Operational task classification: {task}", text)
+                intake = json.loads(
+                    (output / "intake.json").read_text(encoding="utf-8")
+                )
+                self.assertEqual(
+                    intake["external_operator_tasks"], {"Example operator": task}
+                )
+
+    def test_operational_task_classification_reaches_structured_and_conversation_first_paths(self):
+        structured_project = self.temp / "structured-classified"
+        structured_project.mkdir()
+        structured_result = self.run_start(
+            "--structured-intake",
+            "--external-operator", "Example operator",
+            "--external-operator-task", "Example operator=migration",
+            project=structured_project,
+        )
+        self.assertEqual(
+            structured_result.returncode, 0,
+            structured_result.stdout + structured_result.stderr,
+        )
+        structured_output = structured_project / starter_module.OUTPUT_NAME
+        structured_packets = list((structured_output / "operations").glob("*.md"))
+        self.assertTrue(structured_packets)
+        for packet_path in structured_packets:
+            self.assertIn(
+                "Operational task classification: migration",
+                packet_path.read_text(encoding="utf-8"),
+            )
+
+        conversation_project = self.temp / "conversation-first-classified"
+        conversation_project.mkdir()
+        conversation_result = self.run_lifecycle_start(
+            conversation_project,
+            "--external-operator", "Example operator",
+            "--external-operator-task", "Example operator=migration",
+        )
+        self.assertEqual(
+            conversation_result.returncode, 0,
+            conversation_result.stdout + conversation_result.stderr,
+        )
+        conversation_output = conversation_project / starter_module.OUTPUT_NAME
+        conversation_packets = list((conversation_output / "operations").glob("*.md"))
+        self.assertTrue(conversation_packets)
+        for packet_path in conversation_packets:
+            self.assertIn(
+                "Operational task classification: migration",
+                packet_path.read_text(encoding="utf-8"),
+            )
 
     def test_high_impact_environment_selects_high_impact_without_named_operator(self):
         result = self.run_idea_start(

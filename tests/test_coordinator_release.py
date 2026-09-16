@@ -269,6 +269,35 @@ class CoordinatorReleaseTests(unittest.TestCase):
         )
         self.assertEqual(tree_digest(candidate), before)
 
+    def test_installed_release_gate_catches_missing_operational_preflight_requirement(self):
+        """RED: the installed release gate does not yet inspect the WO-WW-029
+        operational-preflight contract at all. Seed a synthetic candidate
+        whose generated preflight text is missing its essential alternate-
+        writer/unknown-scheduler requirement and require the real installed-
+        wheel checker to reject it with a bounded diagnostic -- not a
+        source-only grep, and not mocked installed behavior."""
+        candidate = self.make_candidate()
+        start = candidate / "scripts" / "start_writwall.py"
+        original = start.read_text(encoding="utf-8")
+        essential_requirement = (
+            "- [ ] Alternate writers/engines/schedulers with plausible access to the same\n"
+            "      target (name each one, or state `unknown` when inaccessible to inspect).\n"
+        )
+        self.assertIn(essential_requirement, original)
+        start.write_text(
+            original.replace(essential_requirement, ""),
+            encoding="utf-8",
+            newline="\n",
+        )
+        before = tree_digest(candidate)
+        result = self.run_checker(candidate)
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(
+            "operational preflight",
+            (result.stdout + result.stderr).lower(),
+        )
+        self.assertEqual(tree_digest(candidate), before)
+
     def test_installed_help_mismatch_fails_with_diagnostic(self):
         candidate = self.make_candidate()
         entry = candidate / "writwall_cli" / "__main__.py"

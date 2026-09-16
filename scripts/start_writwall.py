@@ -827,7 +827,49 @@ repository or any other durable project record elsewhere.
 """
 
 
-def operation_packet(function_name: str, canonical: str) -> str:
+OPERATIONAL_TASK_CLASSIFICATIONS = frozenset({
+    "deployment", "migration", "source_freeze", "cutover",
+})
+
+
+def _operational_preflight_block(operational_task: str) -> str:
+    return f"""## Operational preflight
+
+Operational task classification: {operational_task}
+
+This bounded inventory is guidance only; it never performs, simulates, or
+confirms real host, account, or scheduler discovery. An entry the preparer
+cannot verify stays `unknown`, distinct from a verified-absent entry -- never
+invented as safe. Unresolved relevant inventory blocks the affected
+execution, not planning.
+
+- [ ] Environment/account boundary. Observation time: state the exact
+      timestamp this inventory was recorded; do not reuse a stale one.
+- [ ] Alternate writers/engines/schedulers with plausible access to the same
+      target (name each one, or state `unknown` when inaccessible to inspect).
+- [ ] Access limitations preventing a complete inventory.
+- [ ] Approval scope: exactly what this operational task authorizes.
+- [ ] Revalidate this inventory's evidence at the relevant execution
+      transition; no single universal expiry period applies to every task.
+- [ ] Rollback: exact restoration procedure.
+- [ ] Last safe stop: the last point at which stopping leaves no partial,
+      unrecoverable change.
+"""
+
+
+def operation_packet(
+    function_name: str, canonical: str, *, operational_task: str | None = None,
+) -> str:
+    if operational_task is not None and operational_task not in OPERATIONAL_TASK_CLASSIFICATIONS:
+        raise CoordinatorError(
+            f"unsupported operational task classification {operational_task!r}; "
+            "expected one of "
+            + ", ".join(sorted(OPERATIONAL_TASK_CLASSIFICATIONS))
+        )
+    preflight_block = (
+        f"\n{_operational_preflight_block(operational_task)}"
+        if operational_task is not None else ""
+    )
     return f"""# External operations packet: {function_name}
 
 This scaffold is inert. It confers no authority to access or mutate any system.
@@ -836,7 +878,7 @@ executes only the completed packet and returns evidence.
 
 {_external_operator_root_block(canonical)}
 {authorization_continuity_block()}
-
+{preflight_block}
 ## Preconditions
 
 - [ ] Identify the exact system, account boundary, and observed baseline.
@@ -2207,6 +2249,9 @@ def write_bootstrap(project: Path, args: argparse.Namespace, state: ObservedStat
             ),
             "recommended_role_split": role_split_recommendation(functions),
             "external_operator_functions": list(functions),
+            "external_operator_tasks": dict(
+                getattr(args, "external_operator_tasks", {})
+            ),
             "owner_time_capture": args.owner_time == "yes",
             "project_root": canonical,
             "authority": "unratified_intake_only",
@@ -2235,11 +2280,15 @@ def write_bootstrap(project: Path, args: argparse.Namespace, state: ObservedStat
         for name, content in architect_packets(args, functions, canonical).items():
             (stage / name).write_text(content, encoding="utf-8", newline="\n")
         if functions:
+            operator_tasks = getattr(args, "external_operator_tasks", {})
             operations = stage / "operations"
             operations.mkdir()
             for name, slug in zip(functions, slugs):
                 (operations / f"{slug}.md").write_text(
-                    operation_packet(name, canonical), encoding="utf-8", newline="\n"
+                    operation_packet(
+                        name, canonical, operational_task=operator_tasks.get(name)
+                    ),
+                    encoding="utf-8", newline="\n",
                 )
         residue = sorted(
             path.relative_to(stage).as_posix()
@@ -2385,6 +2434,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--location")
     parser.add_argument("--environment")
     parser.add_argument("--external-operator", action="append", default=[])
+    parser.add_argument("--external-operator-task", action="append", default=[])
     parser.set_defaults(private_identifier=[])
     parser.add_argument("--scenario", choices=("dns-mail-migration",))
     parser.add_argument("--owner-time", choices=("yes", "no"))
@@ -2491,6 +2541,47 @@ def _validate_idea_qualification(args: argparse.Namespace) -> None:
         )
 
 
+def _parse_external_operator_tasks(
+    functions: tuple[str, ...], raw_pairs: list[str],
+) -> dict[str, str]:
+    """Explicit, opt-in, per-Operator operational-task classification.
+
+    Each entry is exactly ``Name=classification``. A classification is never
+    inferred from the Operator function's own free-text name; it must be
+    supplied here and must name one already-declared ``--external-operator``
+    function exactly. A missing ``=``, an unsupported classification, a name
+    matching no declared function, or a repeated name all reject before any
+    output mutation.
+    """
+    tasks: dict[str, str] = {}
+    for raw in raw_pairs:
+        if "=" not in raw:
+            raise CoordinatorError(
+                f"malformed --external-operator-task {raw!r}; expected "
+                "NAME=classification"
+            )
+        name, _, classification = raw.partition("=")
+        name = name.strip()
+        classification = classification.strip()
+        if name not in functions:
+            raise CoordinatorError(
+                f"--external-operator-task names unmatched external Operator "
+                f"function {name!r}; declare it with --external-operator first"
+            )
+        if classification not in OPERATIONAL_TASK_CLASSIFICATIONS:
+            raise CoordinatorError(
+                f"unsupported operational task classification {classification!r} "
+                f"for {name!r}; expected one of "
+                + ", ".join(sorted(OPERATIONAL_TASK_CLASSIFICATIONS))
+            )
+        if name in tasks:
+            raise CoordinatorError(
+                f"duplicate --external-operator-task classification for {name!r}"
+            )
+        tasks[name] = classification
+    return tasks
+
+
 def normalize_args(args: argparse.Namespace) -> tuple[argparse.Namespace, Path, tuple[str, ...]]:
     if args.structured_intake and not args.non_interactive:
         args = interactive_args(args)
@@ -2534,6 +2625,9 @@ def normalize_args(args: argparse.Namespace) -> tuple[argparse.Namespace, Path, 
     if args.scenario == "dns-mail-migration":
         functions.extend(name for name in DNS_MAIL_SCENARIO if name not in functions)
     normalized = tuple(name.strip() for name in functions if name.strip())
+    args.external_operator_tasks = _parse_external_operator_tasks(
+        normalized, args.external_operator_task
+    )
     return args, project, normalized
 
 
@@ -2583,6 +2677,9 @@ def normalize_conversation_first_args(
     if args.scenario == "dns-mail-migration":
         functions.extend(name for name in DNS_MAIL_SCENARIO if name not in functions)
     normalized = tuple(name.strip() for name in functions if name.strip())
+    args.external_operator_tasks = _parse_external_operator_tasks(
+        normalized, args.external_operator_task
+    )
     return args, project, normalized
 
 

@@ -882,3 +882,27 @@ are implemented. Windows affected suites ran 133 tests, OK with four skips;
 Ubuntu ran 133, OK without skips. Fresh Sonnet review: ACCEPT / HIGH.
 Ordinary closeout and one private commit/push are authorized. Public delivery
 and issue #36 closure require separate authorization; #37/#38 stay proposals.
+
+## 34. Bounded operational preflight — 2026-09-16
+
+Owner authorized proceeding with issue #37 after clean-lockout verification.
+WO-WW-029 extends existing external-operation packets with task-scoped inventory
+of relevant alternate writers, execution engines, schedulers, access limits,
+evidence age, rollback and the last safe stop before operational execution.
+Keep unknown distinct from absent. Permit planning while affected execution
+remains blocked. Ordinary local coding receives no infrastructure questionnaire.
+Preserve existing intake compatibility and repository/infrastructure authority
+separation. Synthetic source and installed tests only; no real host discovery.
+Role realignment and implementation provenance remain separate proposals.
+
+**WO-WW-029 COMPLETE, accepted 2026-09-16**, including disclosed deviations
+and the non-blocking documentation-pinning suggestion. Explicit optional
+operational classification now elicits bounded inventory without imposing
+an infrastructure questionnaire on local work. Windows affected suites:
+141 tests OK, four skips; native Ubuntu: 141 tests OK, no skips, including
+real installed-wheel gates. Fresh distinct Sonnet review: CONFORMANCE PASS.
+Owner active minutes NOT REPORTED. Ordinary closeout and one private local
+commit authorized; no push, public projection, PR, release or adopter change.
+Issue #37 remains open pending separately authorized public delivery.
+Issues #38 and #41 remain proposals; no successor is activated. The Reviewer
+suggested future documentation-pinning coverage; it is not new authorized work.

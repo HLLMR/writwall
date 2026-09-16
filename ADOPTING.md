@@ -117,6 +117,29 @@ authorizes execution by itself. `--brief` is opt-in, never a mandatory
 onboarding step, and never replaces the full charter, active work-order
 grant, and routed requirements.
 
+Adding an optional, repeatable `--external-operator-task "NAME=classification"`
+(**unreleased source work; not part of any published release, including
+`v0.11.0`**) to `writwall start` explicitly and instruction-boundly classifies
+one already-named `--external-operator` function as `deployment`, `migration`,
+`source_freeze`, or `cutover`; `NAME` must match that Operator function
+exactly. This is elicitation guidance for the generated packet only, never a
+live readiness evaluator or real host/account/scheduler discovery. A
+malformed pair, an unmatched name, an unsupported classification, or a
+repeated name stops before any output is written, and classification is
+never inferred from the Operator function's own free-text name. Ordinary
+local coding and any unclassified external-Operator function receive no
+operational questionnaire and no invented completeness. A classified
+Operator's generated `operations/<slug>.md` packet gains one added
+`## Operational preflight` section naming the environment/account boundary
+and observation time, alternate writers/engines/schedulers (`unknown` when
+inaccessible to inspect, distinct from verified-absent), access limitations,
+approval scope, a per-transition revalidation requirement (no single
+universal expiry period), rollback, and the last safe stop; unresolved
+relevant inventory blocks only the affected execution, never planning. The
+same classification also appears in
+`intake.json["external_operator_tasks"]` as
+`{"<Operator name>": "<classification>"}`.
+
 It classifies the target from repository bytes, copies the complete skill bundle
 into a temporary `.writwall-bootstrap/` directory only for a clean/new target,
 and emits the exact next prompt. It is lifecycle-aware bootstrap and routing
@@ -144,6 +167,7 @@ The idea-first qualification and identity gate are documented in
 | `writwall start` | A new idea or clean project may receive create-only bootstrap bytes | Emits the fresh Architect handoff and makes the complete temporary adoption bundle local |
 | `writwall inspect --role architect` | An existing or workplace repository needs a zero-write first conversation, or an Architect must re-enter later | Prints bounded lifecycle evidence and a fresh Architect prompt without creating any state |
 | `writwall inspect --brief` (unreleased source work; not part of any published release, including `v0.11.0`) | A continuing agent needs a compact, evidence-linked recap instead of the full copy-paste prompt | Prints labeled sections bounded to 500 words of prose, plus an unbounded evidence index of current files with real byte sizes and explicit unknowns; opt-in only, never a replacement for the full charter, active grant, and routed requirements |
+| `writwall start --external-operator-task "NAME=classification"` (unreleased source work; not part of any published release, including `v0.11.0`) | An already-named `--external-operator` function needs a bounded, opt-in operational preflight before deployment/migration/source_freeze/cutover execution | Adds one `## Operational preflight` section and `intake.json["external_operator_tasks"]` entry for that exact Operator only; never inferred from its name, never imposed on ordinary local coding |
 | Prompt-only fallback | The package and source tree are unavailable, or policy permits a model conversation but no local tool | Starts the same Architect function; repository mechanics wait until the bundle is local |
 | Bundled `writwall-adopt` skill | The Owner has promoted the sketch and wants agent-assisted adoption mechanics | Inventories, proposes, and performs only separately ratified recorder actions |
 | `--structured-intake` or `init.sh` | Deterministic intake or expert low-level scaffolding is specifically needed | Preserves compatibility and feeds the fresh Architect; neither creates a second lifecycle nor changes authority |

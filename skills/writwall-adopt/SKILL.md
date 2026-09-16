@@ -30,6 +30,30 @@ External-operation packet scaffolds are inert: blank fields authorize nothing,
 credentials remain outside them, and infrastructure, DNS, and mail Operators
 remain outside the repository wall unless they edit repository bytes.
 
+The day-zero command's optional, repeatable
+`--external-operator-task "NAME=classification"` flag (**unreleased source
+work; not part of any published release**) explicitly and instruction-boundly
+classifies one already-named `--external-operator` function as `deployment`,
+`migration`, `source_freeze`, or `cutover`; `NAME` must match that function
+exactly, and a malformed pair, an unmatched name, an unsupported
+classification, or a repeated name stops before any output is written.
+Classification is never inferred from the function's own free-text name.
+Ordinary local coding and any unclassified external-Operator function
+receive no operational questionnaire and no invented completeness. A
+classified Operator's generated `operations/<slug>.md` packet gains one
+added `## Operational preflight` section: environment/account boundary and
+observation time, alternate writers/engines/schedulers (`unknown` when
+inaccessible to inspect, distinct from verified-absent), access
+limitations, approval scope, a per-transition revalidation requirement (no
+single universal expiry period), rollback, and the last safe stop;
+unresolved relevant inventory blocks only the affected execution, never
+planning. The same classification appears in
+`intake.json["external_operator_tasks"]`. Treat this the same as other
+generated guidance: instruction-bound elicitation for the named Operator's
+own boundary, never a live readiness evaluator, never proof about any other
+system, and never a reason to invent or demand metadata beyond what the
+Owner has actually supplied.
+
 By default the day-zero command is conversation-first and hands the human a
 fresh Architect before any adoption mechanics: `ARCHITECT.md`, `GENERAL.md`,
 and `OPERATOR.md` are its primary role packets, with `OWNER-AGENT.md` and
