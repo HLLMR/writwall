@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://github.com/HLLMR/writwall/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/HLLMR/writwall/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/HLLMR/writwall/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/HLLMR/writwall?display_name=tag&amp;sort=semver"></a>
-  <a href="DOCTRINE.md"><img alt="Doctrine 0.8" src="https://img.shields.io/badge/doctrine-0.8-4f8f8b"></a>
+  <a href="DOCTRINE.md"><img alt="Doctrine 0.9" src="https://img.shields.io/badge/doctrine-0.9-4f8f8b"></a>
   <a href="SECURITY.md"><img alt="Security policy" src="https://img.shields.io/badge/security-policy-b77945"></a>
 </p>
 
@@ -94,10 +94,10 @@ actually blocks the current session before real work begins.
 
 ## Try it in five minutes
 
-Release `v0.11.0` has one canonical lifecycle and two ordinary entry commands:
+Release `v0.12.0` has one canonical lifecycle and two ordinary entry commands:
 
 ```text
-python -m pip install "https://github.com/HLLMR/writwall/archive/refs/tags/v0.11.0.zip"
+python -m pip install "https://github.com/HLLMR/writwall/archive/refs/tags/v0.12.0.zip"
 
 # New idea or clean project: create a temporary local handoff
 writwall start --project-root /path/to/your-project
@@ -250,6 +250,17 @@ Writwall has one canonical lifecycle: Owner → fresh Architect → explicit
 promotion → adoption materialization → fresh General → bounded Operator →
 fresh Reviewer → Owner disposition. The coordinator is the normal front door.
 
+Every function's reply to the Owner opens with a compact header naming the
+project, the current work order or batch, and its status — never inside a
+generated JSON file or other machine-readable output (Doctrine 7.12). A
+roadmap or plan conversation is never execution approval for one work order
+on its own; the General still asks for a fresh approval outside an
+already-approved batch or at a reserved milestone, and never activates,
+expands, or invents follow-on work once a batch ends (7.10). The Reviewer's
+findings reach the Owner through the Architect for delivery only, never
+filtered, with standing Owner access to the complete original findings
+(7.6.4).
+
 Prompt-only Architect conversation, the bundled `writwall-adopt` skill,
 `--structured-intake`, and the low-level `init.sh` scaffolder are fallback or
 specialized execution methods inside that lifecycle. They are not separate
@@ -278,7 +289,8 @@ Three things carry three different names here:
 - **A project-local instantiation is a governance system.** It belongs to the
   adopting project from the moment it is created.
 
-Current revision: **0.8, ratified 2026-08-21** by `decisions/DR-005.md`,
+Current revision: **0.9, ratified 2026-09-16** by `decisions/DR-006.md`,
+superseding 0.8, which was ratified by `decisions/DR-005.md` on 2026-08-21,
 superseding 0.7, which was ratified by `decisions/DR-004.md` on 2026-08-20.
 Revision 0.6 was ratified by `decisions/DR-001.md` on 2026-08-16 and was the
 first authoritative methodology revision; 0.1 through 0.5 were never
@@ -290,8 +302,8 @@ This repository's private self-hosting instance first adopted 0.6 under the
 former identity and later migrated cumulatively to 0.8. Its ratifying project
 decision is a private record not
 carried by public candidates; `SELF-HOSTING.md` preserves the public-safe
-summary. See `DOCTRINE.md` DC.1, `decisions/README.md`, and the two guides under
-`migration-guides/` for the complete revision history.
+summary. See `DOCTRINE.md` DC.1, `decisions/README.md`, and the four guides
+under `migration-guides/` for the complete revision history.
 
 Ratification establishes a stable baseline for testing. It does not claim the
 methodology is proven.
@@ -455,7 +467,7 @@ separate Owner-only publication decision.
 The ten-work-order self-hosting pilot and its fresh-agent evaluation are
 complete. Disclosure cleanup, license mechanization, and the clean-history
 projection gate and cumulative project-local migration are complete. Doctrine
-0.8 is the current ratified revision (`decisions/DR-005.md`). The separate
+0.9 is the current ratified revision (`decisions/DR-006.md`). The separate
 private governed source's project-side governance instance is operatively bound to Doctrine 0.8; its ratifying `governance/decisions/DR-003.md` is not
 carried by public candidates, while `SELF-HOSTING.md` carries the public-safe
 summary.

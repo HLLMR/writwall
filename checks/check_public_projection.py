@@ -89,9 +89,11 @@ PRIVATE_RETAINED_REFERENCE_FILES = frozenset({
     "CLAUDE.md",
     "decisions/DR-001.md",
     "decisions/DR-005.md",
+    "decisions/DR-006.md",
     "governance/ADOPTION-MAPPING.md",
     "governance/LOG-denials-probes.md",
     "governance/ROUTING.md",
+    "governance/STATE.md",
     "governance/decisions/DR-001.md",
     "governance/decisions/DR-005.md",
 })

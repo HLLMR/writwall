@@ -496,6 +496,63 @@ class PublicProjectionProcessTests(unittest.TestCase):
             encoding="utf-8")
         self.assertIn("private governed-source reference", projected)
 
+    def test_builder_qualifies_dr006_report_reference_in_candidate_only(self) -> None:
+        """Historically RED: `decisions/DR-006.md` was not yet in either
+        `PRIVATE_RETAINED_REFERENCE_FILES` set (builder and checker), so a
+        synthetic omitted-report reference inside a projected `DR-006.md` was
+        not qualified by the builder and the checker did not accept it;
+        coordinator-observed RED before the corresponding addition to both
+        sets. Now GREEN: `decisions/DR-006.md` is in both sets, and this
+        mirrors `test_builder_qualifies_dr005_report_reference_in_candidate_only`
+        exactly, using the existing synthetic builder/checker fixture
+        (`self.allow` / `self.run_builder` / `self.run_checker`) and a
+        synthetic reference string only -- never a real historical target or
+        DR-006's actual content, which this test does not read. The
+        canonical fixture source bytes are asserted unchanged; the checker
+        is required to accept the projected, qualified reference.
+        """
+        source_text = ("See `governance/reports/WO-WW-099-SYNTHETIC-report.md` "
+                       "for the underlying evidence.\n")
+        self.allow("decisions/DR-006.md", source_text)
+        self.assertEqual(self.run_builder().returncode, 0)
+        checked = self.run_checker()
+        self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+        self.assertEqual((self.source / "decisions" / "DR-006.md").read_text(
+            encoding="utf-8"), source_text)
+        projected = (self.output / "decisions" / "DR-006.md").read_text(
+            encoding="utf-8")
+        self.assertIn("private governed-source reference", projected)
+
+    def test_builder_qualifies_state_report_reference_in_candidate_only(self) -> None:
+        """Historically RED: `governance/STATE.md` was not yet in either
+        `PRIVATE_RETAINED_REFERENCE_FILES` set (builder and checker), so a
+        synthetic omitted-report reference inside a projected `STATE.md` was
+        not qualified by the builder and the checker did not accept it;
+        coordinator-observed RED before the corresponding addition to both
+        sets. Now GREEN: `governance/STATE.md` is in both sets, and this
+        mirrors `test_builder_qualifies_dr006_report_reference_in_candidate_only`
+        exactly, using the existing synthetic builder/checker fixture
+        (`self.allow` / `self.run_builder` / `self.run_checker`) and a
+        synthetic reference string only -- never a real historical target or
+        this repository's actual STATE.md content, which this test does not
+        read. The canonical fixture source bytes are asserted unchanged, and
+        the existing state-snapshot note (WO-PL-029 B.3.2 item 1) is present
+        in the projection alongside the retained-reference qualification --
+        this addition did not weaken or remove it.
+        """
+        source_text = ("# State\n\nSee `governance/reports/WO-WW-099-SYNTHETIC-report.md` "
+                       "for the underlying evidence.\n")
+        self.allow("governance/STATE.md", source_text)
+        self.assertEqual(self.run_builder().returncode, 0)
+        checked = self.run_checker()
+        self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+        self.assertEqual((self.source / "governance" / "STATE.md").read_text(
+            encoding="utf-8"), source_text)
+        projected = (self.output / "governance" / "STATE.md").read_text(
+            encoding="utf-8")
+        self.assertIn("snapshot of the private governed source", projected)
+        self.assertIn("private governed-source reference", projected)
+
     def test_retained_archive_reference_with_target_project_note_passes(self) -> None:
         self.allow("NOTES.md",
                    "Create `archive/project-history.md` "
@@ -666,6 +723,70 @@ class PublicProjectionProcessTests(unittest.TestCase):
         checked = self.run_checker(source=REPO_ROOT)
         self.assertNotEqual(checked.returncode, 0)
         self.assertIn("distribution", (checked.stdout + checked.stderr).lower())
+
+    def test_real_source_projection_includes_dr006_and_the_08_to_09_guide_pair(self) -> None:
+        """A projection built from the actual current source must carry
+        `decisions/DR-006.md`, `migration-guides/0.8-to-0.9.md`, and its
+        bundled copy. This proves membership and payload presence only -- it
+        does not depend on `identity/legacy-references.json`'s digests being
+        refreshed yet, and it reads no excluded target. Uses the existing
+        real-source builder fixture (`source=REPO_ROOT`) with the controlled
+        synthetic private-pattern input already set up in `setUp`
+        (`self.patterns`), never the managed OS-local privacy profile.
+
+        The two migration guides carry no retained-reference to an omitted
+        path, so their projected bytes are required to equal the canonical
+        source bytes exactly. `decisions/DR-006.md` is different: it is
+        already, correctly, subject to the just-approved retained-reference
+        qualification transform (its own "Candidate transcribed from" line
+        names a `governance/reports/` path the candidate omits), so the
+        projection is expected to differ from the canonical file by exactly
+        that already-tested qualification note, not to be byte-identical.
+        For DR-006 this test asserts file presence, manifest membership, and
+        the existing qualification note's presence in the projected file --
+        the exact transformed-byte contract itself is already the builder's
+        and checker's own responsibility, proven by the existing synthetic
+        DR-006 regression; this test does not call any internal transform
+        helper to fabricate an expected value, which would duplicate and
+        could silently drift from that already-tested contract.
+
+        Only these three files' own canonical source bytes are confirmed
+        unchanged afterward; this makes no claim about the rest of the
+        source tree.
+        """
+        guide_paths = (
+            "migration-guides/0.8-to-0.9.md",
+            "skills/writwall-adopt/references/migration-guides/0.8-to-0.9.md",
+        )
+        dr006_path = "decisions/DR-006.md"
+        canonical_paths = (*guide_paths, dr006_path)
+        source_bytes_before = {
+            relative: (REPO_ROOT / relative).read_bytes() for relative in canonical_paths
+        }
+
+        built = self.run_builder(source=REPO_ROOT)
+        self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+
+        for relative in guide_paths:
+            with self.subTest(path=relative):
+                projected = self.output / relative
+                self.assertTrue(projected.is_file(), f"{relative} missing from projection")
+                self.assertEqual(projected.read_bytes(), source_bytes_before[relative])
+
+        dr006_projected = self.output / dr006_path
+        self.assertTrue(dr006_projected.is_file(), f"{dr006_path} missing from projection")
+        self.assertIn(
+            "private governed-source reference",
+            dr006_projected.read_text(encoding="utf-8"),
+        )
+
+        manifest = (self.output / "PROJECTION-MANIFEST.sha256").read_text(encoding="utf-8")
+        for relative in canonical_paths:
+            self.assertIn(f"  {relative}", manifest)
+
+        for relative in canonical_paths:
+            self.assertEqual(
+                (REPO_ROOT / relative).read_bytes(), source_bytes_before[relative])
 
     def test_real_public_surface_builds_and_passes_integrated_checks(self) -> None:
         built = self.run_builder(source=REPO_ROOT)

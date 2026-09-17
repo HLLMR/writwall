@@ -8,4 +8,4 @@ For each existing document in the project, record one row.
 
 Rules: every intent-bearing document lands in exactly one row; a Tier-2 row without a route is an Archive row; two documents may not both be assigned to Plan for the same scope; the completed worksheet is attached to DR-001.
 
-_Extracted verbatim from DOCTRINE.md rev 0.8. Do not edit here; templates change only when the doctrine does._
+_Extracted verbatim from DOCTRINE.md rev 0.9. Do not edit here; templates change only when the doctrine does._

@@ -16,12 +16,12 @@
     {
       "path": "README.md",
       "context": "migration_provenance",
-      "sha256": "bb9083c43def4a803c3f01e296ccbdb0402068ec39145e3ddd892ac3e922eea3"
+      "sha256": "4f49c016aba20e207a72f9e19c6a7057954e87c753f8208e31bce6c13b39f9aa"
     },
     {
       "path": "SELF-HOSTING.md",
       "context": "mixed_current_guidance_and_history",
-      "sha256": "6a51c1211cc675599634d144ca24a705ec1696f84640a6464b14efb1d6c3a629"
+      "sha256": "ca53dba00262f47351796b07ca236926b517e5a19ac3667df9a1045dcc4dbccf"
     },
     {
       "path": "NAMING.md",
@@ -31,7 +31,7 @@
     {
       "path": "checks/check_distribution.py",
       "context": "historical_evidence_path",
-      "sha256": "20df8e937b6efeb7930894b7d4eba42761283b6d0166e78bcabaa2ab6dc75a7c"
+      "sha256": "0c36b90c28084c3bcf808298bec54f02c50117d3307e307bf793ff61d8284f8f"
     },
     {
       "path": "checks/check_identity.py",
@@ -94,19 +94,19 @@
     {
       "path": "governance/LOG.md",
       "context": "historical_pilot_summary",
-      "sha256": "fe23a4b929fdfb3440da3e239405bbd4a6e9d430d34e7820a9a94a76aff6bcda",
+      "sha256": "ba4bd0d79505aa32782b41cf3143f27d2ed0509c2125482502b3737b9aeb754c",
       "projection_transform": "private_evidence_redaction"
     },
     {
       "path": "governance/PLAN.md",
       "context": "ratified_historical_intent",
-      "sha256": "f18d83c92cc2da4b2fe22a20376bea7ca7ccc331638f30d996ff52afe3af6784"
+      "sha256": "a6036b492d0f3aca7c5bd455ccc4314f3d67d1d407936f6c6e17c55e4a39f250"
     },
     {
       "path": "governance/STATE.md",
       "context": "mixed_current_state_and_history",
-      "sha256": "3b2587346c7a5a0c214b40433383fd256374a7597a6f54933a612a430cf5b7e7",
-      "projection_sha256": "bec6857daf55f1576f51c6ea7b9d7729501b59e2dfc565768309640b6fff8592"
+      "sha256": "85cf867035693dfa0019acd9db0151ac95dc98dd45cf31a052d32a8d9edf9508",
+      "projection_sha256": "7421478c01f4e343c3d255b3daa22e9cb3ce232915ab87c1e490f6be1e79fea3"
     },
     {
       "path": "governance/decisions/DR-001.md",
@@ -122,12 +122,12 @@
     {
       "path": "projection/public-files.txt",
       "context": "historical_path_index",
-      "sha256": "fafcbf659c40d7260dddaa8a64b6b59c3b7de484f77d879a90323bb4b3e1a4a7"
+      "sha256": "28ba77c4dfd9370bfe9fca2d349cd042c9a55ac8c6f1c09efca70e73a86d278f"
     },
     {
       "path": "tests/test_distribution.py",
       "context": "historical_evidence_fixture",
-      "sha256": "13478c88a9d9951f4a90ef15fa389fc0bf19894f917cbada62fc366cbe70a635"
+      "sha256": "9badf3dc8e783db4dc6f3ab3af8246e2da34d111ba936466e9e2055ca8665c63"
     },
     {
       "path": "tests/test_identity_migration.py",

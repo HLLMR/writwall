@@ -98,6 +98,49 @@ CANDIDATE_CLAIM_PHRASES = (
     "is a candidate",
 )
 
+# Doctrine 7.12.1 defines the "proposed" work-order/batch status value using
+# prose shaped like a candidate-phrase match: "an idea, sketch, or draft not
+# yet ratified or activated". That clause defines a status value; it asserts
+# nothing about DOCTRINE.md's own DC.1 ratification state.
+#
+# The exemption below is POSITIONALLY scoped to clause 7.12.1's own text
+# span, never applied to the whole document. A blanket string/regex
+# replacement over all of DOCTRINE.md would also silently erase this exact
+# phrase if it were quoted (with the same intervening whitespace) OUTSIDE
+# 7.12.1 -- for example a sentence inserted before Part 1 falsely claiming
+# "This Doctrine revision is a draft not yet ratified or activated" -- which
+# is exactly the genuine contradiction this scan exists to catch. DOCTRINE.md
+# remains in CANDIDATE_SCAN_DOCUMENTS and every occurrence of a candidate
+# phrase anywhere OUTSIDE the located 7.12.1 span still scans normally; only
+# the text located between the "7.12.1" and "7.12.2" clause markers has this
+# one known phrase stripped before matching. The canonical clause wraps its
+# line between "or" and "activated", so the match tolerates existing
+# whitespace (a wrapped newline or a plain space) at exactly that point.
+DOCTRINE_NORMATIVE_STATUS_DEFINITION_RE = re.compile(
+    r"draft not yet ratified or\s+activated")
+DOCTRINE_CLAUSE_7121_START_RE = re.compile(r"7\.12\.1\s")
+DOCTRINE_CLAUSE_7121_END_RE = re.compile(r"7\.12\.2\s")
+
+
+def strip_doctrine_7121_normative_definition(lowered_text: str) -> str:
+    """Remove the benign 7.12.1 status-value phrase, scoped to 7.12.1 only.
+
+    Locates clause 7.12.1's own span (from its "7.12.1" marker up to the
+    next "7.12.2" marker) in the already-lowercased DOCTRINE.md text and
+    applies the phrase substitution only inside that span. Text outside the
+    span -- including an identical-looking phrase quoted elsewhere in the
+    document -- is returned unmodified, so it remains subject to the
+    ordinary candidate-phrase scan.
+    """
+    start_match = DOCTRINE_CLAUSE_7121_START_RE.search(lowered_text)
+    end_match = DOCTRINE_CLAUSE_7121_END_RE.search(lowered_text)
+    if not start_match or not end_match or end_match.start() <= start_match.start():
+        return lowered_text
+    start, end = start_match.start(), end_match.start()
+    clause = DOCTRINE_NORMATIVE_STATUS_DEFINITION_RE.sub(
+        "", lowered_text[start:end])
+    return lowered_text[:start] + clause + lowered_text[end:]
+
 # v0.1 may never be presented as having carried authority.
 V01_AUTHORITY_CLAIM_PHRASES = (
     "v0.1 was ratified",
@@ -129,6 +172,8 @@ BUNDLE_COPIES = {
         REPO_ROOT / "migration-guides" / "0.6-to-0.7.md",
     SKILL / "references" / "migration-guides" / "0.7-to-0.8.md":
         REPO_ROOT / "migration-guides" / "0.7-to-0.8.md",
+    SKILL / "references" / "migration-guides" / "0.8-to-0.9.md":
+        REPO_ROOT / "migration-guides" / "0.8-to-0.9.md",
     SKILL / "assets" / "adapters" / "claude-code" / "README.md": ADAPTER_README,
     SKILL / "assets" / "adapters" / "claude-code" / "wo_capability_wall.py": ADAPTER,
     SKILL / "assets" / "checks" / "check_work_order_dispatch.py": DISPATCH_CHECKER,
@@ -202,6 +247,7 @@ REQUIRED_FILES = [
     "migration-guides/0.1-to-0.6.md",
     "migration-guides/0.6-to-0.7.md",
     "migration-guides/0.7-to-0.8.md",
+    "migration-guides/0.8-to-0.9.md",
     "scripts/build_distribution.py",
     "scripts/build_public_projection.py",
     "scripts/collect_name_clearance.py",
@@ -458,6 +504,12 @@ def check_markers(control: dict, failures: Failures) -> None:
             if not path.is_file():
                 continue
             lowered = read_text(path).lower()
+            if name == "DOCTRINE.md":
+                # Strip only clause 7.12.1's own known-normative text, by
+                # position, not the whole document; every other occurrence
+                # of a candidate phrase in DOCTRINE.md -- including this
+                # same phrase quoted OUTSIDE 7.12.1 -- still scans.
+                lowered = strip_doctrine_7121_normative_definition(lowered)
             for phrase in CANDIDATE_CLAIM_PHRASES:
                 if phrase in lowered:
                     failures.add(

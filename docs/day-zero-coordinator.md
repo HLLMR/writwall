@@ -135,7 +135,8 @@ read-only, uses the recorded evidence before asking the Owner to restate
 anything already visible in repository bytes, summarizes the apparent
 project in plain language, and asks whether the Owner wants to explore that
 work or start elsewhere. If the target is genuinely empty, the opening
-imposes no fixed question list and reads exactly: "Tell me what you are
+imposes no fixed question list; after the required reporting header (Doctrine
+7.12.1), it opens the conversation with exactly: "Tell me what you are
 thinking." Neither observation is ratified intent; `discovery.json` records
 it under `local_observations`, kept separate from Owner-supplied statements,
 alongside a deterministic, explicitly `unratified_recommendation` topology
@@ -238,16 +239,72 @@ later design-conformance judgment: it interviews, drafts, routes, and
 performs exactly authorized lifecycle mechanics. After adoption, a fresh
 **General** owns continuity — preparing bounded dispatch, routing work, and
 performing only explicitly authorized recorder mechanics — without ratifying
-intent or judging design conformance itself. An **Operator** works only
+intent or judging design conformance itself. Whenever it delegates a bounded
+task to a fresh Operator, it announces the delegated role and task, names a
+discoverable monitoring location or states plainly that none exists, states
+the last verified execution/handoff state (Doctrine 7.11.5), and names the
+result/question return route; a conversational reply never implies delegated
+work keeps running or has stopped when that is not actually observed.
+Doctrine 7.11.5 tracks a handoff between functions through five
+distinguishable states — prepared, sent, acknowledged, returned, and
+reviewed — and a status not actually observed is reported as unknown, never
+inferred as favorable. A human-relayed message is preserved together with
+its provenance — that it was relayed, by whom, and when — and is never
+presented as a direct machine-to-machine handoff record (Doctrine 7.11.6).
+An **Operator** works only
 under one active, Owner-ratified work order. An infrastructure, DNS, mail,
 deployment, or other external Operator receives a bounded packet and returns
 evidence; it remains outside the repository wall unless it edits repository
-bytes. A fresh **Reviewer** checks the relevant order, result, report, and
-returned evidence. `OWNER-AGENT.md` and `REPOSITORY-OPERATOR.md` remain as
+bytes. An Operator files an RFI as one of three kinds — an informational
+clarification, a resolvable execution problem, or a blocking scope,
+authority, or safety contradiction (Doctrine 7.11.1) — and where
+independence from a blocking matter is itself in doubt, the dependency is
+treated as blocking, never declared independent unilaterally by the
+Architect or General (7.11.2). A fresh **Reviewer** checks the relevant
+order, result, report, and returned evidence; its owner brief is addressed
+to the Owner and, for delivery only, conveyed through the Architect, who may
+not suppress, rewrite, condition, delay, or waive any finding — the Owner
+retains standing access to the Reviewer's complete original findings, and a
+finding implicating an Architect decision escalates to the Owner directly
+(Doctrine 7.6.4). `OWNER-AGENT.md` and `REPOSITORY-OPERATOR.md` remain as
 compatibility aliases for the Architect and Operator packets.
 
-The Architect and General keep the proverbial keys—authority and
-routing—not literal passwords or cryptographic material. External packets
+Owner approval of a roadmap, plan section, or discussion is not execution
+approval for any individual work order or batch member (Doctrine 7.10.1); a
+fresh Owner approval is required outside an already-approved batch or at a
+reserved milestone (7.10.4). Once an approved batch's last member is
+complete, blocked, or exhausted, the General reports results and may
+recommend, but never activates, expands, or manufactures, follow-on work;
+batch approval by itself confers no release, publish, deploy, push, tag, or
+external-account authority (7.10.7). Acceptance of a routine, fully
+conforming batch member stays the Owner's own disposition unless the Owner
+has separately ratified a delegated conforming-completion disposition policy
+naming a delegate (2.33, 7.10.6); such closure is recorded as disposed under
+that policy, never described as "the Owner accepted," and rework or
+deviation ratification are never delegable under any policy.
+
+## Reporting headers
+
+Every Architect, General, Operator, and Reviewer reply that addresses the
+Owner directly opens with a compact header: the project; the current work
+order or batch identifier and its plain-language purpose; and status —
+proposed, no active work order, active work on a named item, blocked, or
+reporting on a completed work order or batch (Doctrine 7.12.1). For an
+approved batch, the header distinguishes overall batch progress from the
+currently active member rather than naming only the active item (7.12.2).
+This header never appears inside `intake.json`, `discovery.json`, a pasted
+command, or another machine-readable or reusable artifact (7.12.4).
+
+Stating this requirement in canonical prompts, skill instructions, and
+generated role packets instructs a freshly invoked function to comply; it
+does not itself make compliance mechanical. A test of generated bytes proves
+only that the instruction is present in what was generated, never that a
+future invocation will actually follow it (Doctrine 7.12.5).
+
+The Architect and General keep the proverbial keys—routing and
+sequencing—not literal passwords or cryptographic material, and not
+authority, which stays with the Owner and the recorded delegation chain
+(Doctrine 4.1.4, 8.7.7). External packets
 separate preconditions, permitted and prohibited actions, verification,
 rollback, evidence, and credential handling. Blank packet fields authorize
 nothing. An operation-packet scaffold confers no authority by itself.

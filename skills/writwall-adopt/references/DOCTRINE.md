@@ -10,11 +10,11 @@
 | Field | Value |
 |---|---|
 | Document | The Doctrine: Document-Controlled AI-Assisted Development |
-| Revision | 0.8 |
+| Revision | 0.9 |
 | Status | Ratified |
 | Amendment authority | The Owner of the methodology repository |
-| Supersedes | 0.7 |
-| Effective | 2026-08-21, ratified by DR-005 (`decisions/DR-005.md`) |
+| Supersedes | 0.8 |
+| Effective | 2026-09-16, ratified by DR-006 (`decisions/DR-006.md`) |
 
 ### DC.2 Revision History
 
@@ -28,6 +28,7 @@
 | 0.6 | 2026-08 | Corrections from formal review: baseline versus adoption commit; two-level birth test; transactional record category; archive semantics; Dispatcher and Reviewer inputs; Owner disposition; control taxonomy; instrument qualification event; operational definitions moved to adoption record. Pre-ratification touch-ups: 2.18, 6.2.1.1, 7.6.1; bootstrap-agent exception and post-adoption role inputs (1.2.2-1.2.4); provider configuration at adoption (5.1.3); repository roles versus physical repositories, permitting a segregated self-hosted instance (5.1.1, 5.1.4-5.1.6); charter current-state updated by the Owner and never by agents (Appendix A A.3); qualification cross-references corrected to 8.4.4 (Appendix D D.5, 9.2.8); methodology-maintenance exception preserved after adoption (1.2.4); methodology repository described as distribution and reference implementation rather than documentation alone (5.1.2) | Yes |
 | 0.7 | 2026-08 | Align Appendix B with the shipped pre-dispatch validator: classify every declared grant surface exactly once in `enforced_by` or `unenforced_boundaries`; default the provider-neutral template to no mechanically enforced whole surfaces; add generated-boundary markers and the checker-emission workflow. No other Doctrine clause changes. | Yes |
 | 0.8 | 2026-08-21 | Corrected Appendix A's unqualified "blocked and logged" claim to be provider-contingent, matching this repository's own already-corrected charter; corrected Appendix B's B.4/B.7 numbering defect (see erratum below); added `governance/templates/` to the Part 5.2.1 reference layout with invariant 5.3.8 governing its refresh, and revised 5.1.3 to affirmatively require whatever deterministic dispatch-preparation tooling the revision's workflow needs (described generically, never naming a product) while stating plainly that a scaffolded skeleton without populated governance records, that tooling, and a ratified adoption record with the adoption commit containing it is not itself adoption; defined the birth-test instrument (2.28), narrowed to the active-scope, per-surface birth test only, and cross-referenced it from 6.1.3; and added Part 8.7, Protected Control Plane, governing mutation authority (not read-deny) over the active-work-order pointer, installed enforcement configuration, the active work order or instrument itself, and the denial-evidence log — unconditionally, with no exception for an Owner-authored grant — treating activation, retirement, recorder actions that themselves mutate a control-plane artifact, and the specifically defined adoption-recorder action as Owner lifecycle actions outside any capability grant while leaving ordinary Part 7 closeout governed and requiring durable pre-execution authorization; and defining a labeled `instrument_kind: birth-test` / `control_plane_probes` dispatch exception whose exact protected-path entries confer no authority and must still be denied by the runtime wall, with enforcement remaining provider-contingent and birth-test-gated (8.7.4), resolving RFI-22's Doctrine-level question without closing the RFI itself | Yes |
+| 0.9 | 2026-09-16 | Added definitions 2.29 Architect, 2.30 General, 2.31 Operator (with 2.31.1 shared-hosting distinctness and 2.31.2 external-operations packet), 2.32 Batch, and 2.33 Delegated conforming-completion disposition. Amended 4.1.2 to bar only standing/carried authority rather than the function names themselves; added 4.1.4 (authority is delegation-chain-derived, citing 3.2.5) and 4.1.5 (shared-provider hosting, reconciled with 4.1.3's unchanged different-vendor preference for Implementer/Reviewer). Amended 4.2.4 to route Reviewer briefs through the Architect as a delivery channel only; added 4.2.5-4.2.7 (Architect, General, Operator role-table rows) and 7.6.4 (Reviewer independence from Architect/General, reconciled with 7.6.1, 7.6.3, and Appendix C). Amended 7.2.4 to state that ratifying a batch is the activation decision for its named members; amended 7.7.1 to allow a named delegate to exercise acceptance under an Owner-ratified delegated conforming-completion disposition policy while reserving deviation ratification to the Owner alone. Added Part 7.10 (batch approval and delegated execution, 7.10.1-7.10.9, reconciling activation with the amended 7.2.4/existing 8.7.6 Owner-lifecycle mechanism and delegated disposition with the amended 7.7.1/existing 7.7.3), Part 7.11 (RFI severity and handoff continuity), and Part 7.12 (reporting headers, including the "proposed" status form). Amended Appendix A A.5 to require the 7.12 header. Added Part 6.5 (existing-project realignment). Added 8.7.7 (function names confer no additional control-plane authority). No enforcement, adapter, or template mechanism is implemented by this revision alone. | Yes |
 
 **Erratum, recorded 2026-08-21.** Revision 0.7's addition of "B.4 Generated
 boundaries" collided with the pre-existing B.4 ("BOUNDARIES") identity
@@ -147,6 +148,69 @@ Terms are defined for use within the doctrine. Where a term has a wider industry
 
 2.28 **Birth-test instrument.** A capability-grant-bearing artifact, sharing the work-order frontmatter and pointer-activation mechanism (Appendix B, 8.3.5) for engineering convenience, used only for the active-scope, per-surface birth test (8.3.5.2), where an Owner-directed test mechanically requires an active pointer and grant to exercise scoped enforcement. It is not a work order (2.16): it carries no Part 7 disposition cycle and is never counted under Part 9 (6.1.3). This does not forbid a Dispatcher-equivalent function from drafting one or a Reviewer-equivalent function from inspecting its outcome; the boundary that matters is that it never carries or ratifies intent (2.6-2.7) and never substitutes for a counted work order. Like any work order, its own capability grant is bound by 8.7.2 and never reaches a control-plane artifact — except that its manifest may name an exact control-plane path solely as a falsification probe under the schema at 8.7.4, which confers no authority under 8.7.2; it is validation metadata, never a grant. It is distinct from the no-work-order lockout (8.3.5.1), which is not an instrument at all: that test observes the absence of any active pointer, and its pass condition is precisely that nothing is active to grant anything. It is also distinct from an Owner lifecycle action (8.7.6), including the adoption-recorder lifecycle action: neither is ever performed under a birth-test instrument's or any work order's capability grant.
 
+2.29 **Architect.** The function that is the primary human point of contact
+during discovery, adoption, construction, and recovery conversation (4.2.5).
+It listens, inspects bounded evidence, challenges the pitch, drafts a project
+sketch or design proposal, and conveys existing Owner authority. It never
+ratifies intent and never activates a work order.
+
+2.30 **General.** The post-adoption continuity function (4.2.6) that
+maintains awareness of the plan and open transactional records, prepares
+bounded dispatch (performing the Dispatcher function, 4.2.2, when it does),
+routes work to Operators, records only decisions the Owner has already
+ratified, and routes new design or design-conformance questions to a fresh
+Architect invocation rather than deciding them itself.
+
+2.31 **Operator.** The function that executes one active work order or one
+bounded external-operations packet (2.31.2) inside its capability grant
+(4.2.7). An Operator working a repository work order performs exactly the
+Implementer function (4.2.3) under that name; an Operator working an
+external packet (infrastructure, DNS, mail, deployment, or a similar
+account-bearing function) remains outside the repository's installed-provider
+wall coverage (2.31.2, 8.3.4) unless and until it edits repository bytes, at
+which point it is an ordinary Operator under a work order.
+
+2.31.1 **General distinctness under shared hosting.** The General function
+(2.30) exists as a distinct function from the Architect (2.29) even where
+one provider hosts both, and even where both run under the same subscription
+or account. What makes them distinct functions is fresh, separate
+invocations (4.1.2, 4.1.5) — separate sessions performing the
+discovery/design function and the continuity/dispatch function respectively
+— not a different vendor, product, or human login. A small project may run
+both functions from the same underlying model without collapsing them into
+one persistent persona, provided each invocation begins fresh from the
+record. This shared-hosting allowance concerns only the Architect/General/
+Operator functions defined here; it does not diminish or satisfy 4.1.3's
+separate, unchanged preference that the Implementer and Reviewer functions
+be performed by different model vendors where practical.
+
+2.31.2 **External-operations packet.** A bounded, project-specific
+instruction packet an Operator (2.31) executes for an infrastructure, DNS,
+mail, deployment, or similarly account-bearing function that lies outside
+this repository's own capability-wall coverage. It is not a Doctrine-defined
+capability-grant surface in the sense of 8.3.1's minimum list; it is the
+kind of project-specific surface 8.3.1 already contemplates ("any
+project-specific surfaces such as database mutation, infrastructure
+changes, or model runs") and 8.3.4 already requires be declared unenforced
+where no installed provider covers it. Its exact preconditions, permitted
+and prohibited actions, verification, rollback, and credential handling are
+defined by the adopting project issuing it, never by this Doctrine, which
+states only that such a packet exists as a category and that it remains
+outside the repository's installed-provider wall coverage unless and until
+it edits repository bytes under an ordinary work order.
+
+2.32 **Batch.** A finite, named, Owner-approved sequence of already-drafted
+work orders or work-order revisions that an explicit Owner instruction
+authorizes for sequential activation without a fresh approval request at
+each member's activation (7.10). A batch is not a standing authorization: it
+names its members, and approving it approves only those members.
+
+2.33 **Delegated conforming-completion disposition.** An Owner-ratified
+policy (7.10.6) that lets a named function close a routine, fully conforming
+batch member without an individual Owner acceptance turn for that member. It
+is distinct from Owner acceptance (7.7.1) and is never recorded as if it
+were one.
+
 ---
 
 ## PART 3. THESIS AND PRINCIPLES
@@ -185,9 +249,42 @@ Terms are defined for use within the doctrine. Where a term has a wider industry
 
 4.1.1 The doctrine defines roles as functions rather than as persistent processes or personas. Any function may be performed by any capable model. What matters is what each function receives, what it is permitted to do, and what it must produce.
 
-4.1.2 There is no manager-agent, architect-agent, or orchestrator-agent. Continuity lives in the record. Enforcement lives in mechanism. Judgment about intent lives in the Owner. Every agent invocation begins from the record as if it had never seen the project, because it has not.
+4.1.2 There is no *standing* manager-agent, architect-agent, or
+orchestrator-agent carrying memory or authority across sessions. The
+Architect, General, and Operator (2.29-2.31, 4.2.5-4.2.7) are functions
+performed by a fresh agent invocation with no carried authority, exactly
+like every other function this Part defines; naming a function is not
+granting it standing continuity. Continuity lives in the record.
+Enforcement lives in mechanism. Judgment about intent lives in the Owner.
+Every agent invocation begins from the record as if it had never seen the
+project, because it has not — including an Architect or General
+invocation, and including one immediately following another in the same
+conversation.
 
 4.1.3 Where practical, the Implementer and Reviewer functions should be performed by different model vendors. Independent failure modes make agreement-by-shared-blindspot less likely.
+
+4.1.4 A function name is not authority. Authority derives from the recorded
+delegation chain (3.2.5, 2.7, 7.9.1), never from title, memory, apparent
+seniority, or physical or conversational proximity to the Owner. Downstream
+delegation may narrow scope but never enlarge it. A reporting relationship
+among functions — for example, an Operator reporting through a General —
+does not abolish the fresh-invocation boundary of 4.1.2 or the review
+independence of 4.2.4 and 7.6.
+
+4.1.5 One provider may host multiple Architect/General/Operator functions
+(4.2.5-4.2.7) without requiring separate subscriptions or vendors, provided
+each invocation is fresh per 4.1.2 and execution/review independence is
+preserved per 7.6. This shared-hosting allowance does not satisfy, diminish,
+or substitute for 4.1.3's separate, unchanged preference that the
+Implementer and Reviewer be performed by different model vendors where
+practical; 4.1.3 concerns the Implementer/Reviewer pair specifically and is
+not relaxed by this clause, which concerns only the newer
+Architect/General/Operator functions. No function may silently take over a
+stalled or unresponsive downstream function's work. Reassignment requires
+either authority already present in an existing mandate or a fresh Owner
+decision, and any reassignment must still preserve fresh execution/review
+separation for the reassigned work — an Architect that reassigns a stalled
+Operator's task does not thereby become that task's Reviewer.
 
 ### 4.2 Role Table
 
@@ -196,7 +293,10 @@ Terms are defined for use within the doctrine. Where a term has a wider industry
 | 4.2.1 | Owner | Human | Durable | Sole ratifier of intent: charter, plan, routing map, decisions, amendments. Reads owner briefs by default and evidence on escalation. |
 | 4.2.2 | Dispatcher | Agent, fresh per invocation | None | Drafts work orders from ratified intent. Self-checks each for internal contradiction before issue. Never writes code. |
 | 4.2.3 | Implementer | Agent, fresh per work order | None | Executes exactly one work order inside its capability grant. Halts and files RFIs on ambiguity. Never amends intent-bearing documents. |
-| 4.2.4 | Reviewer | Agent, fresh per artifact | None | Diffs work reports against the work order and plan. Produces owner briefs. Never writes code, never amends intent. |
+| 4.2.4 | Reviewer | Agent, fresh per artifact | None | Diffs work reports against the work order and plan. Produces owner briefs, addressed to the Owner and, for routing purposes, delivered through the Architect (4.2.5) rather than the General (4.2.6), per the Owner-escalation guarantee of 7.6.4. Routing a brief through the Architect is a delivery channel, not an approval gate: the Architect conveys the brief and may not suppress, rewrite, or condition its delivery on anything (7.6.4). Never writes code, never amends intent, never reviews its own implementation. |
+| 4.2.5 | Architect | Agent, fresh per invocation | None | Primary human point of contact for discovery, adoption, construction-phase design, and recovery. Listens, inspects bounded evidence, challenges the pitch, drafts a project sketch or design proposal, conveys existing Owner authority, and performs only exactly authorized recorder mechanics (8.7.6). Never ratifies intent, never activates a work order, never suppresses or rewrites a Reviewer finding (7.6.4). |
+| 4.2.6 | General | Agent, fresh per invocation | None | Post-adoption continuity function. Prepares bounded dispatch (may perform the Dispatcher function, 4.2.2), routes work to Operators, records only already-ratified Owner decisions, and routes new design or design-conformance questions to a fresh Architect. Prepares batch members for activation but never itself activates one; activation is an Owner lifecycle action under 8.7.6/7.10.3. Never ratifies intent; never prepares a member beyond the Owner-approved sequence or past a reserved milestone (7.10.4). |
+| 4.2.7 | Operator | Agent, fresh per work order or bounded external-operations packet | None | Executes one active work order or one bounded external-operations packet (2.31.2) inside its capability grant. Performs the Implementer function (4.2.3) when working a repository work order. Halts and files RFIs per 7.11 on ambiguity. Never reviews or authorizes its own work. |
 
 ---
 
@@ -328,6 +428,25 @@ Terms are defined for use within the doctrine. Where a term has a wider industry
 
 6.4.2 The birth test has two levels with different consequences. The no-work-order lockout (8.3.5.1) is an adoption precondition: if any mutation channel available to the Implementer can mutate anything with no active work order, the project has not adopted the doctrine. Active-work-order scope enforcement (8.3.5.2) is tested per surface: a surface that fails through any channel is downgraded to unenforced-by-declaration for that project, which does not invalidate adoption unless the Owner judges the resulting risk unacceptable under 8.3.4.
 
+### 6.5 Existing-Project Realignment
+
+6.5.1 A read-only realignment may summarize an already-adopted project's
+current responsibilities, approved scope, evidence age, blockers, and next
+permitted action without touching project bytes. It is available to any
+function re-entering a project, including the Architect and the General, and
+creates no lifecycle event by itself.
+
+6.5.2 Realignment preserves every prior adoption, approval, active work,
+command compatibility, and canonical project root. It never forces a fresh
+interview, an automatic migration or re-adoption, retrieval of archived
+history, or repair of anything outside an active work order's grant. Evidence
+it cannot find is reported as missing, never guessed or invented.
+
+6.5.3 A project remains bound to the doctrine revision it last ratified
+(DC.4.1) regardless of any later revision this methodology repository
+publishes. Publishing a revised methodology revision is not itself a
+migration of any adopting project, including a self-hosted instance (5.1.6).
+
 ---
 
 ## PART 7. THE WORKFLOW
@@ -352,7 +471,12 @@ Terms are defined for use within the doctrine. Where a term has a wider industry
 
 7.2.3 The Dispatcher self-checks the draft for internal contradiction between the grant, the required work, and the stated prohibitions, and resolves any contradiction before issue.
 
-7.2.4 The Owner activates the work order.
+7.2.4 The Owner activates the work order. For a member of an Owner-ratified
+batch (7.10), the Owner's ratification of the batch is the activation
+decision for each named member, made once for the sequence rather than once
+per member; the mechanical act of creating or updating the activation
+pointer for that member still proceeds only through the separately
+authorized lifecycle actor 8.7.6 requires (7.10.3).
 
 ### 7.3 The Wall Goes Up
 
@@ -382,9 +506,32 @@ Terms are defined for use within the doctrine. Where a term has a wider industry
 
 7.6.3 The Reviewer is an information-loss boundary. The brief is the Owner's default read, but the Reviewer must attach or link supporting evidence, and the Owner must read it, whenever any of the following holds: the verdict is DEVIATION; the Reviewer rates its own confidence LOW on the fixed HIGH/MEDIUM/LOW scale of Appendix C, which threshold is not the Reviewer's to set; the change is security-relevant or irreversible; or the Implementer's claims, the Reviewer's findings, and any empirical instrument's results disagree.
 
+7.6.4 The Reviewer's owner brief (2.18, Appendix C) is addressed to the
+Owner and, for delivery purposes only, is conveyed to the Owner through the
+Architect (4.2.5) rather than the General (4.2.6). Conveying is not
+reviewing: the Architect may not suppress, rewrite, condition, delay, or
+waive any Reviewer finding, verdict, escalation, or required evidence. The
+Architect's channel does not become a second information-loss boundary
+alongside the one 7.6.3 already establishes for the Reviewer; the Owner
+retains standing access to the Reviewer's complete original findings
+regardless of any summary the Architect adds when conveying them. Where a
+Reviewer's finding or a brief's contents implicate a decision the Architect
+itself made, escalation to the Owner proceeds directly and is not filtered
+or mediated by the Architect. Design advice the Architect offers about the
+work under review is not independent review and never substitutes for the
+Reviewer's function (4.2.4, 8.0.3).
+
 ### 7.7 Owner Disposition
 
-7.7.1 Reading the brief, and the evidence when escalated, the Owner disposes of the work: acceptance, rework, or ratification of a deviation. Acceptance and rework are ordinary dispositions. Ratification is reserved for dispositions that change intent (2.7).
+7.7.1 Reading the brief, and the evidence when escalated, the Owner
+disposes of the work: acceptance, rework, or ratification of a deviation.
+Acceptance and rework are ordinary dispositions. Ratification is reserved
+for dispositions that change intent (2.7). For a routine, fully conforming
+member covered by an Owner-ratified delegated conforming-completion
+disposition policy (7.10.6), acceptance may be exercised by the named
+delegate that policy identifies rather than by the Owner directly.
+Ratification of a deviation remains reserved to the Owner alone and is
+never delegable under any policy.
 
 7.7.2 Any disposition that changes intent becomes a decision record at that moment.
 
@@ -407,6 +554,195 @@ Terms are defined for use within the doctrine. Where a term has a wider industry
 7.9.4 No pending Owner decision lives in a chat thread. Proposals are extracted to the governance directory and decided from the record. Threads die. Files do not.
 
 7.9.5 No control depends on an agent remembering an instruction.
+
+### 7.10 Batch Approval and Delegated Execution
+
+7.10.1 Owner approval of a roadmap, a plan section, or a discussion is not
+execution approval for any individual work order (2.16). Execution approval
+requires an explicit Owner instruction identifying either one work order or a
+finite batch (2.32) of named, already-drafted work-order revisions.
+
+7.10.2 A batch record states: member work-order identifiers and revisions;
+the batch objective; sequence and dependencies among members; the resources
+and actions each member's own grant already authorizes; delegated
+responsibilities; falsifiable acceptance conditions; any Owner-reserved
+milestone at which the sequence stops for a fresh decision; stop conditions;
+and the exact Owner instruction that authorized it. An existing record is
+reused where one already states this; a batch does not require a new
+administrative document for every routine transition.
+
+7.10.3 Owner approval of a batch does not activate every member
+simultaneously. Consistent with 7.3 and the project's one-active-work-order
+control model, once a member's prerequisites and any reserved milestone have
+passed, the General (4.2.6) prepares that next approved, unblocked batch
+member for activation. The General never itself performs activation.
+Activation remains exactly the pointer-creation act 8.3.5.1 and 8.7.1 name
+as a control-plane artifact, and 8.7.6 requires that act to be an Owner
+lifecycle action performed by a separately authorized recorder, never under
+any work order's or batch's own capability grant; no agent edits the
+activation pointer under a capability grant, under this clause or any other.
+The Owner's ratification of the batch record supplies the durable,
+pre-execution authorization 8.7.6 requires for each named member, recorded
+once at batch ratification rather than re-obtained once per member; this is
+what lets the sequence proceed without a repeated per-member Owner ask,
+while the mechanical act of activation still passes through the same
+separately authorized recorder 8.7.6 always requires. 7.2.4's requirement
+that the Owner activates the work order is unchanged: for a batch member,
+the Owner's act of ratifying the batch is the 7.2.4 activation decision,
+made once for the named sequence rather than once per member; the
+recorder's later keystroke executes a decision the Owner already made,
+exactly as 8.7.6 already permits for any other lifecycle action.
+
+7.10.4 A fresh Owner approval is required before dispatching a work order
+that is not already part of an approved batch, or at any milestone the Owner
+reserved in the batch record. A session change, by itself, is never grounds
+to request an approval the batch record does not require.
+
+7.10.5 No function may reclassify an intent, scope, capability,
+acceptance-condition, resource-limit, or reserved-milestone change as
+clerical. Only Owner ratification changes any of these (7.9.1, 2.7). A
+platform permission prompt is not an Owner re-ratification, and a mandate
+never substitutes for one. A genuinely clerical lifecycle correction — one
+that preserves the exact meaning the Owner already approved and merely
+repairs its administrative form — proceeds only through a separately
+authorized lifecycle actor acting under 8.7.6, and only with a durable trace
+recording what was corrected, against what already-ratified text, and by
+whom. A correction that leaves any doubt about whether meaning changed is
+not clerical by this clause's own terms and requires ordinary Owner
+ratification instead.
+
+7.10.6 The Owner may separately ratify a delegated conforming-completion
+disposition policy (2.33) letting the General or Reviewer close a routine,
+fully conforming batch member without an individual Owner acceptance turn.
+This is an instance of 7.7.1's acceptance disposition, delegated in advance,
+not a fourth disposition alongside acceptance/rework/ratification. 7.7.2 and
+7.7.3 continue to apply exactly as written to every member closed this way:
+a disposition that changes intent still becomes a decision record at that
+moment regardless of who or what closed the member (7.7.2), and the cycle's
+metrics are still appended to LOG.md and the next work order still
+dispatches (7.7.3), with the LOG.md entry for a delegation-disposed member
+stating plainly that disposition was by the ratified delegated policy, not
+by the Owner's own reading, so a later reader can distinguish the two
+dispositions without inferring it from context. Such a policy: is itself a
+decision record; states exactly which conditions qualify as routine and
+fully conforming; and is never described as "the Owner accepted" when only
+the delegated policy's own criteria were met — the record instead states
+plainly that the delegated policy disposed of it under 7.7.1, distinct from
+the Owner personally reading and accepting it. Nonconformance, deviation, or
+unresolved ambiguity still escalates under 7.6.2-7.6.3 regardless of any
+delegated policy; no function may waive it, and a delegated policy is
+defined precisely because 7.7.1's rework and deviation-ratification
+dispositions are excluded from it by definition — only the plain-acceptance
+case is delegable. Absent a ratified delegated policy, ordinary Owner
+disposition (7.7) continues to govern every member, exactly as it does
+today.
+
+7.10.7 Execution stops when an approved batch's last member is complete,
+blocked, or exhausted. The General reports results and may recommend, but
+may not activate, expand, or manufacture, follow-on work; a new batch or
+work order requires a fresh Owner approval under 7.10.1. Batch approval
+implies no authority to release, publish, deploy, push, tag, or act on any
+external account; each requires its own explicit inclusion in the approval
+that grants it.
+
+7.10.8 A reserved Owner milestone (7.10.2, 7.10.4) and the mandatory
+escalation conditions of 7.6.3 are independent controls, both of which apply
+in full to work performed under a batch. Passing a reserved milestone check
+does not satisfy or substitute for a 7.6.3 escalation condition that is
+separately triggered, and satisfying 7.6.3 does not waive a reserved
+milestone the batch record separately names. Batch approval under 7.10.1
+never supersedes, narrows, or creates an exception to 7.6.2's default block
+on nonconformance, 7.6.3's mandatory escalation, or any other standing
+review requirement; a batch is a sequencing authorization, not a review or
+escalation waiver.
+
+7.10.9 The complete semantic-state mapping for a batch member, using only
+representations the project's existing pre-dispatch validation and
+Appendix B's existing status enum already support; this candidate invents
+no new status value, pointer format, or frontmatter field:
+
+| Semantic state | Where it lives | Existing machine-readable representation |
+|---|---|---|
+| Proposed / planned | The batch record itself, or an ordinary plan section, before Owner approval | No work-order frontmatter exists yet for an unapproved member, or it exists as an ordinary draft file not yet named in any ratified batch record. Nothing to parse; this is a plan-level state, not a work-order state. |
+| Approved-for-execution (batch member, not yet active) | The ratified batch record | The member is named, by its existing `id:`, in an Owner-ratified batch record (7.10.2). It does not yet exist as an activated pointer target: the existing activation pointer does not name it. "Approved-for-execution" is a batch-record fact, not a work-order frontmatter fact. |
+| Active | The work order itself, once activated | The activation pointer names it, and its frontmatter reads `status: ACTIVE` — Appendix B's existing enum, unchanged. |
+| Blocked | The work order itself | Frontmatter `status: RFI-BLOCKED` — Appendix B's existing enum, unchanged. Corresponds to 7.11.1's blocking RFI class. |
+| Complete | The work order, then its historical record | Frontmatter `status: COMPLETE`, then moved to the project's historical record at closure (5.3.7) — unchanged. |
+
+### 7.11 RFIs, Blocking, and Handoff Continuity
+
+7.11.1 An RFI (2.20) is filed as one of three explicitly stated kinds: an
+informational clarification that does not block ongoing work; a resolvable
+execution problem that blocks only the work it affects until answered; or a
+blocking scope, authority, or safety contradiction that halts the affected
+work immediately, before or concurrently with filing the RFI itself.
+
+7.11.2 A blocking RFI halts the work it affects and any work that depends on
+it. Independently authorized work may continue only once its independence
+from the blocked matter is established, not merely asserted. Where that
+judgment is itself in doubt, the dependency is treated as blocking rather
+than resolved by assertion, and neither the Architect nor the General
+declares independence unilaterally in that circumstance.
+
+7.11.3 An RFI presented to the Owner as an executive decision brief states:
+the question; the evidence; the affected scope; the consequence of each
+option; a recommendation; and the exact decision needed. The lower-level
+technical record behind the brief is preserved and remains available; the
+brief never replaces it.
+
+7.11.4 Resolving an RFI changes only the scope the resolution names.
+Approvals unrelated to that scope remain valid without replay. Evidence that
+depended on the resolved question is rechecked before being relied on again,
+but the entire authorization chain is not re-litigated because one question
+in it was resolved.
+
+7.11.5 A handoff between functions is tracked through distinguishable states:
+prepared (drafted, not transmitted); sent (transmitted to the receiving
+session or human); acknowledged (receipt confirmed); returned (work product
+delivered back); and reviewed (a fresh Reviewer has checked it). No function
+fabricates a dispatch, a session identifier, a completion, or continuous
+awareness of a handoff's status; a status not actually observed is reported
+as unknown, never inferred as favorable.
+
+7.11.6 A human-relayed message is preserved together with its provenance —
+that it was relayed, by whom, and when — and is never presented as if it
+were a direct machine-to-machine handoff record.
+
+7.11.7 The Architect remains free to discuss design with the Owner while a
+General is executing an approved batch. That conversation alone does not
+interrupt, reauthorize, or expand the executing work. Any resulting change to
+scope, intent, or grant still requires ordinary Owner ratification and an
+ordinary batch-record update under 7.10.5.
+
+### 7.12 Reporting Headers
+
+7.12.1 Every agent-authored user-facing progress or final reply to the Owner
+begins with a compact header stating: the project; the current work order or
+batch identifier and its plain-language purpose; and the current activity or
+status, using one of: proposed (an idea, sketch, or draft not yet ratified or
+activated); no active work order; active work on a named work order or batch
+member; blocked; or reporting on a completed work order or batch. Where none
+is active, the header states so plainly rather than omitting the line.
+
+7.12.2 For an approved batch, the header distinguishes overall batch progress
+from the currently active member.
+
+7.12.3 A report states what happened, why it matters to the Owner's
+decision, what the evidence proves and does not prove, any decision or
+blocker, and the next permitted action. A pull-request identifier or a
+passing test count supports that statement; it never substitutes for it.
+
+7.12.4 This requirement binds the Architect, General, Operator, and Reviewer
+whenever addressing the Owner directly. It does not require a header inside
+machine-readable output, a pasted command, or another reusable artifact not
+meant for direct human reading.
+
+7.12.5 Canonical prompts, skill instructions, and generated role packets
+state this requirement so a freshly invoked function is instructed to
+comply. Compliance itself remains instruction-bound, not mechanically
+enforced; a test of generated bytes proves only that the instruction is
+present in what was generated, never that a future invocation will follow
+it.
 
 ---
 
@@ -516,6 +852,15 @@ Pre-dispatch validation passes such an instrument only when every control-plane 
 
 8.7.6 Activating or retiring the active-work-order pointer; changing the installed enforcement configuration; amending the active work order's or birth-test instrument's own frontmatter or body; and, narrowly, any recorder action that itself mutates a control-plane artifact, together with the adoption-recorder lifecycle action defined in Part 6 (the Owner-directed recorder closeout that records already-ratified adoption decisions), are Owner lifecycle actions. Ordinary Part 7 work-order reporting, review, acceptance, history retirement, State and metrics update, and closeout remain inside the governed Part 7 cycle (7.5-7.8) and are not reclassified under this clause merely because they record an already-ratified Owner disposition; 8.7.6 reaches only control-plane mutation itself and the named adoption-recorder action. None is performed under a work order's or birth-test instrument's own capability grant, and none is self-authorized by the artifact being changed. The Owner may delegate the clerical keystrokes of such an action to a separately authorized recorder or mechanism acting on exact, already-ratified Owner instructions, but authority over the action stays with the Owner, never with the Implementer or the instrument executing it, and no active Implementer uses its own capability grant to perform one. That separate Owner lifecycle authorization is recorded before execution in a durable Owner disposition or lifecycle packet in the canonical record; a chat exchange alone is not authorization.
 
+8.7.7 The Architect, General, and Operator functions defined in 2.29-2.31
+and 4.2.5-4.2.7 are ordinary names for the same actors 8.7.6 already
+describes as "a separately authorized recorder or mechanism" and "the
+Implementer." Naming a function under 4.2 confers no control-plane authority
+beyond what 8.7.2 and 8.7.6 already permit or forbid. A General or Architect
+acting under 8.7.6 remains bound by every condition stated there, including
+durable, pre-execution Owner authorization recorded in the canonical record
+rather than in chat alone.
+
 ---
 
 ## PART 9. MEASUREMENT
@@ -607,8 +952,10 @@ A.4.1 [path or subsystem] -> [document]
 A.4.2 Unmapped and unsure -> RFI.
 
 ## A.5 REPORTING
-End every work order with the report format specified in the work order,
-addressed to the Reviewer. Completeness over brevity.
+Begin every reply to the Owner with a one-line header: project, current work
+order or batch and its plain-language purpose, and status (7.12). End every
+work order with the report format specified in the work order, addressed to
+the Reviewer. Completeness over brevity.
 
 ## A.6 ENVIRONMENT
 [build and test commands, platform notes: the minimum an agent needs
@@ -745,4 +1092,4 @@ Rules: every intent-bearing document lands in exactly one row; a Tier-2 row with
 
 ---
 
-*Revision 0.8. Ratified 2026-08-21 by DR-005. See DC.2 for history and DC.3 for the rules under which this document changes.*
+*Revision 0.9. Ratified 2026-09-16 by DR-006. See DC.2 for history and DC.3 for the rules under which this document changes.*

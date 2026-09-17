@@ -36,6 +36,7 @@ decisions/DR-001.md
 decisions/DR-003.md
 decisions/DR-004.md
 decisions/DR-005.md
+decisions/DR-006.md
 decisions/LICENSING-DIRECTION.md
 decisions/README.md
 docs/agents/domain.md
@@ -86,6 +87,7 @@ init.sh
 migration-guides/0.1-to-0.6.md
 migration-guides/0.6-to-0.7.md
 migration-guides/0.7-to-0.8.md
+migration-guides/0.8-to-0.9.md
 projection/public-files.txt
 pyproject.toml
 scripts/build_distribution.py
@@ -110,6 +112,7 @@ skills/writwall-adopt/references/DOCTRINE.md
 skills/writwall-adopt/references/migration-guides/0.1-to-0.6.md
 skills/writwall-adopt/references/migration-guides/0.6-to-0.7.md
 skills/writwall-adopt/references/migration-guides/0.7-to-0.8.md
+skills/writwall-adopt/references/migration-guides/0.8-to-0.9.md
 skills/writwall-adopt/references/name-clearance.md
 templates/A-charter.md
 templates/B-work-order.md

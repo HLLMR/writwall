@@ -2,6 +2,83 @@
 
 # STATE — Writwall
 
+## Current closeout checkpoint — 2026-09-17, WO-WW-032
+
+**OBSERVED:** Owner accepted WO-WW-032 including disclosed deviations and
+directed authorized closeout and v0.12.0 publication. Active minutes NOT
+REPORTED. Release metadata, installation references and release regression
+coverage now consistently specify v0.12.0. Final pre-acceptance Windows848
+tests/13 skips and Ubuntu848 tests/4 skips passed sequentially. Both native
+installed, payload and archive gates passed; two independently managed139-file
+candidates matched and final privacy checks passed. Independent public-candidate
+review returned ACCEPT-READY with no blocking findings; test/hash execution
+remains Coordinator evidence, not Reviewer recomputation.
+
+Accepted work-order/report/lifecycle records are retired byte-for-byte, with
+pointer retirement last. Prior failures and provider denials remain preserved;
+whole-surface classification remains8/0/8. Final between-work-order qualification,
+independent publication review, private push, public PR and required CI-gated
+merge precede exact-commit tag and verified immutable release. These later
+actions are authorized but not claimed complete at this source snapshot.
+Private operative binding remains0.8; no other-project access or migration.
+The General reports through Architect; there is no separate internal-agent
+sidebar. Evidence: governance/history/WO-WW-032-report.md and (private governed-source reference, not present in this candidate)
+governance/history/WO-WW-032-issuance-lifecycle.md (private governed-source (private governed-source reference, not present in this candidate)
+references, not present in the public candidate).
+
+## Current closeout checkpoint — 2026-09-17, WO-WW-031
+
+**OBSERVED:** Owner accepted031 with "Accepted, proceed", including disclosed
+deviations; active minutes NOT REPORTED. Final native Windows848 total/13 skips
+and Ubuntu848 total/4 skips passed. Both installed/payload legs passed on unchanged
+frozen input; independent Opus supported Owner acceptance after final report
+clarification. The temporary locked verification account/home were removed.
+Denialcount341, preceding340-record prefix unchanged, canary target absent;
+whole-surface classification remains8/0/8. Earlier failed evidence is preserved.
+
+Accepted order/reports and the closeout/lifecycle records were retired
+byte-for-byte, with pointer retirement last. The next bounded task is v0.12.0
+delivery preparation/qualification under existing Plan36, not a new normative
+Plan amendment. Publication remains subject to exact grants, required acceptance
+milestones, live retained-digest refresh and complete final delivery gates.
+Self-hosting remains bound to0.8; no other-project access or migration occurs.
+The internal General has no separate sidebar; Architect remains the Owner POC.
+No public release or new interpreted assessment is claimed by this checkpoint.
+
+Evidence: governance/history/WO-WW-031-acceptance-closeout.md and (private governed-source reference, not present in this candidate)
+governance/history/WO-WW-031-report.md (private governed-source references, (private governed-source reference, not present in this candidate)
+not present in the public candidate).
+
+## Latest bounded checkpoint — 2026-09-16, WO-WW-030
+
+**OBSERVED:** Owner accepted WO-WW-030 with its disclosed deviations and ratified
+the exact Doctrine 0.9 candidate. Active minutes NOT REPORTED. Independent Opus
+returned CONFORMANCE PASS on candidate content, with disclosed targeted-source
+coverage limits; coordinator integrity, active dispatch and whitespace checks
+passed. Tabletop scenarios remain analysis, not runtime or cost-reduction proof.
+
+All six current WO-WW-030 work/report/ratification records were retired to
+governed history byte-for-byte. The accepted candidate digest is
+0ACBF638D71C0F41CE059D1AE1F8BEB7DA3B23325942B9ACE00F21E2491E9FAB;
+continuation digest is
+9073E29218E13FC283E8A28B8393863EE9C2F5DB6B1872AE8327CF4F6AE0EDC0.
+The active pointer was removed last. No successor is active at this checkpoint.
+Denial log remains 340 records: one original Write canary (339), one separate
+genuine Read transport denial (340), original 338-record prefix unchanged,
+canary target absent. Whole-surface classification remains 8 / 0 / 8.
+
+The Owner authorized bounded WO-WW-031 implementation and later v0.12.0 delivery,
+including verification, private push, public PR, CI-gated merge, tag and immutable
+release. Required acceptance milestones remain. Those later actions are not
+claimed complete. Canonical transcription and the exact routing/issuance packet
+are pending preparation. Self-hosting remains bound to 0.8; no other-project
+access or migration is authorized. No new INTERPRETED assessment is added.
+
+Evidence: `governance/history/WO-WW-030-ratification-closeout.md` and (private governed-source reference, not present in this candidate)
+`governance/history/WO-WW-030-issuance-lifecycle.md` (private governed-source (private governed-source reference, not present in this candidate)
+references, not present in the public candidate). Older checkpoints below are
+dated snapshots, not current execution or authorization status.
+
 ## Latest bounded checkpoint — 2026-09-16, WO-WW-029
 
 **OBSERVED:** Owner accepted WO-WW-029 with disclosed sequencing overlap,

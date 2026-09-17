@@ -10,8 +10,9 @@ few recent commit subjects, and top-level project-relative names); the
 Architect begins read-only, uses that evidence before asking the Owner to
 restate anything already visible in repository bytes, summarizes what it
 found, and asks whether to explore that work or start elsewhere. For a
-genuinely empty target it opens with exactly: "Tell me what you are
-thinking," and imposes no fixed question list. A supplied project or command
+genuinely empty target it imposes no fixed question list; after the required
+reporting header (Doctrine 7.12.1), it opens the conversation with exactly:
+"Tell me what you are thinking." A supplied project or command
 name is always a `working_candidate`; generated files never make it
 canonical, available, cleared, or accepted.
 
@@ -54,14 +55,39 @@ The output separates adaptive judgment from mechanics:
   rejected, no adoption, work order, or construction control is created;
 - `GENERAL.md` is the exact prompt for post-adoption continuity: preparing
   bounded dispatch, routing work, and performing only explicitly authorized
-  recorder mechanics;
-- `OPERATOR.md` is inert until a ratified plan and active work order;
+  recorder mechanics. Whenever it delegates a bounded task to a fresh
+  Operator, it announces the delegated role and task, names a discoverable
+  monitoring location or states plainly that none exists, states the last
+  verified execution/handoff state, and names the result/question return
+  route, so a conversational reply never implies delegated work keeps
+  running or has stopped when that is not actually observed. Its own mandate
+  is finite: a roadmap or plan approval is never execution approval for one
+  work order or batch member, a fresh Owner approval is required outside an
+  approved batch or at a reserved milestone, and it never activates,
+  expands, or manufactures follow-on work at a batch's end. A routine,
+  fully conforming batch member's acceptance stays the Owner's unless a
+  separately ratified delegated conforming-completion disposition policy
+  names a delegate, and rework or deviation ratification are never
+  delegable;
+- `OPERATOR.md` is inert until a ratified plan and active work order, and
+  files an RFI as one of three kinds -- informational, resolvable, or
+  blocking -- treating doubtful independence from a blocking matter as
+  blocking rather than declaring it unilaterally;
 - `OWNER-AGENT.md` and `REPOSITORY-OPERATOR.md` are compatibility aliases
   for `ARCHITECT.md` and `OPERATOR.md`, kept for existing consumers of those
   two filenames;
-- `REVIEWER.md` keeps fresh review separate from implementation;
+- `REVIEWER.md` keeps fresh review separate from implementation; its brief
+  is addressed to the Owner and only conveyed, never filtered, through the
+  Architect, and the Owner retains standing access to its complete original
+  findings;
 - `NAME-CLEARANCE.md` routes the canonical seven-source evidence process; and
 - `OWNER-RATIFICATION.md` is the explicit stop before implementation.
+
+Every packet that addresses the Owner directly opens with a compact
+reporting header -- project; work order or batch identifier and its
+plain-language purpose; and status, including `proposed` and `no active
+work order` -- never inside `discovery.json`, `intake.json`, or another
+machine-readable artifact (Doctrine 7.12).
 
 Every one of these packets, plus `discovery.json` itself, carries the same
 one resolved canonical project root; see

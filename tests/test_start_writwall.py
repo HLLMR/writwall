@@ -455,6 +455,221 @@ class StartWritwallTests(unittest.TestCase):
             text = (self.output / relative).read_text(encoding="utf-8")
             self.assertIn("unratified", text.lower(), relative)
 
+    def test_generated_packets_state_the_full_role_coordination_contract(self):
+        """The generated role-packet set expresses the ratified Doctrine 0.9
+        coordination contract that the independent Reviewer's B1/B2/B3 and
+        R2/R3/R5 findings identified as missing, proven through the actual
+        emitted bytes of one ordinary public `writwall start` invocation --
+        never an internal constant or a mocked collaborator.
+
+        Markdown packet text is checked whitespace-normalized (as the
+        delegation-visibility test above already does for CLI stdout),
+        because Markdown line-wrapping is immaterial public formatting, not
+        required content; a phrase that happens to wrap across an emitted
+        line must still be found. `discovery.json` and `intake.json` are
+        checked on their raw bytes and parsed as JSON, so contamination and
+        validity are both verified against the actual machine-readable
+        output, not a normalized copy of it.
+        """
+        result = self.run_idea_start()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+        def flat(relative):
+            text = (self.output / relative).read_text(encoding="utf-8")
+            return " ".join(text.split())
+
+        architect = flat("ARCHITECT.md")
+        general = flat("GENERAL.md")
+        operator = flat("OPERATOR.md")
+        reviewer = flat("REVIEWER.md")
+
+        # B1: Doctrine 7.12 reporting headers, with the status enum
+        # actually named, bind the Architect, General, Operator, and
+        # Reviewer whenever addressing the Owner directly (7.12.4).
+        for label, text in (
+            ("ARCHITECT.md", architect), ("GENERAL.md", general),
+            ("OPERATOR.md", operator), ("REVIEWER.md", reviewer),
+        ):
+            with self.subTest(packet=label):
+                self.assertIn("one-line header", text)
+                self.assertIn("no active work order", text)
+                self.assertIn("proposed", text)
+
+        # B1 negative: the header is instruction for Owner-facing replies,
+        # never a line inside machine-readable output (7.12.4), and the
+        # JSON it might have contaminated must still parse cleanly, checked
+        # on raw bytes rather than a normalized copy.
+        discovery_text = (self.output / "discovery.json").read_text(encoding="utf-8")
+        self.assertNotIn("one-line header", discovery_text)
+        json.loads(discovery_text)
+        intake_text = (self.output / "intake.json").read_text(encoding="utf-8")
+        self.assertNotIn("one-line header", intake_text)
+        json.loads(intake_text)
+
+        # B2: Reviewer independence (7.6.4) -- the brief is addressed to
+        # the Owner and only conveyed, never filtered, through the
+        # Architect, with the Owner retaining standing access to the
+        # complete original findings.
+        self.assertIn("conveyed", reviewer)
+        self.assertIn(
+            "may not suppress, rewrite, condition, delay, or waive", reviewer)
+        self.assertIn("standing access", reviewer)
+
+        # B3: a finite execution mandate, never standing authority
+        # (7.10.1, 7.10.4, 7.10.7), as the explicit counterweight to
+        # "perform every mechanically available authorized step."
+        self.assertIn("is not execution approval", general)
+        self.assertIn("fresh Owner approval", general)
+        self.assertIn("never activate, expand, or manufacture", general)
+
+        # R2: RFI severity classes (7.11.1) and blocking-dependency
+        # treatment (7.11.2), on the function that actually files RFIs.
+        self.assertIn("informational clarification", operator)
+        self.assertIn("resolvable execution problem", operator)
+        self.assertIn(
+            "blocking scope, authority, or safety contradiction", operator)
+
+        # R3: delegated conforming-completion disposition (2.33, 7.10.6)
+        # -- acceptance stays the Owner's absent a separately ratified
+        # policy, and rework/deviation ratification are never delegable.
+        self.assertIn("delegated conforming-completion disposition", general)
+        self.assertIn("never delegable", general)
+
+        # R5: the five distinguishable handoff states (7.11.5) and
+        # relayed-message provenance (7.11.6).
+        for state in ("prepared", "sent", "acknowledged", "returned", "reviewed"):
+            with self.subTest(handoff_state=state):
+                self.assertIn(state, general)
+        self.assertIn("relayed", general)
+
+    def test_direct_continuation_prompts_name_the_reporting_header_for_their_own_role(self):
+        """The family of directly-continuing/re-entering role prompts -- the
+        recovery coordinator (partial bootstrap), the Implementer (active
+        work order), and the re-entering Architect (`inspect --role
+        architect` on an already-adopted project) -- each instructs ITS OWN
+        invoked role to open Owner-facing replies with the Doctrine 7.12.1
+        header, proven from the actual emitted prompt text for that
+        lifecycle state.
+
+        Each fixture is checked independently and each assertion targets
+        only that state's own emitted prompt text, never aggregate stdout
+        that could also contain an unrelated role's own prompt. This
+        deliberately avoids the "prepared-intake trap": the clean/new
+        Architect prepared-intake prompt previews the General's own prompt
+        text at its end, so an assertion against that aggregate stdout could
+        be satisfied by the General's instructions rather than the
+        Architect's own -- none of the three fixtures below embed another
+        role's full prompt, so no such collision is possible here.
+        """
+        # 1. partial_bootstrap -> recovery-coordinator prompt (standalone).
+        settings = self.project / ".claude" / "settings.json"
+        settings.parent.mkdir(parents=True)
+        settings.write_text("{}\n", encoding="utf-8")
+        recovery_result = self.run_lifecycle_start()
+        self.assertEqual(
+            recovery_result.returncode, 0,
+            recovery_result.stdout + recovery_result.stderr)
+        self.assertIn("Act as a fresh recovery coordinator", recovery_result.stdout)
+        self.assertIn("one-line header", recovery_result.stdout)
+
+        # 2. active_work_order -> Implementer prompt (standalone).
+        implementer_project = self.temp / "active-work-order-project"
+        implementer_project.mkdir()
+        work_order = (implementer_project / "governance" / "work-orders"
+                     / "WO-001.md")
+        work_order.parent.mkdir(parents=True)
+        work_order.write_text(
+            "---\nid: WO-001\nstatus: ACTIVE\n---\n# Work\n", encoding="utf-8")
+        pointer = implementer_project / ".claude" / "active-wo.txt"
+        pointer.parent.mkdir(parents=True)
+        pointer.write_text(
+            "governance/work-orders/WO-001.md\n", encoding="utf-8")
+        implementer_result = self.run_lifecycle_start(implementer_project)
+        self.assertEqual(
+            implementer_result.returncode, 0,
+            implementer_result.stdout + implementer_result.stderr)
+        self.assertIn(
+            "Act as a fresh Implementer for the active work order only",
+            implementer_result.stdout)
+        self.assertIn("one-line header", implementer_result.stdout)
+
+        # 3. adopted_lockout -> re-entering Architect via `inspect --role
+        # architect` (standalone; does not embed the General's own prompt).
+        adopted_project = self.temp / "adopted-lockout-project"
+        adopted_project.mkdir()
+        governance = adopted_project / "governance"
+        governance.mkdir()
+        for name in ("PLAN.md", "STATE.md", "ROUTING.md"):
+            (governance / name).write_text(f"# {name}\n", encoding="utf-8")
+        decision = governance / "decisions" / "DR-001.md"
+        decision.parent.mkdir()
+        decision.write_text(ratified_adoption_record(), encoding="utf-8")
+        architect_result = self.run_inspect("architect", adopted_project)
+        self.assertEqual(
+            architect_result.returncode, 0,
+            architect_result.stdout + architect_result.stderr)
+        self.assertIn("Selected role: Fresh Architect", architect_result.stdout)
+        self.assertIn("one-line header", architect_result.stdout)
+
+    def test_empty_project_architect_prompts_place_the_header_before_the_invitation(self):
+        """For a genuinely empty project, both `ARCHITECT_EMPTY_PROJECT_PROMPT`
+        (the zero-flag `writwall start` conversation-first handoff) and the
+        empty-project branch of `_architect_inspection_prompt` (`writwall
+        inspect --role architect`) instruct the invoked Architect to open
+        with the exact invitation "Tell me what you are thinking." AND to
+        begin every Owner-facing reply with the Doctrine 7.12.1 header.
+        Neither instruction exempts the other: the reconciliation keeps the
+        invitation as the opening conversational QUESTION, stated explicitly
+        as coming after the required header, rather than merely relying on
+        sentence order elsewhere in the text. This asserts the actual
+        reconciling phrase joining the two instructions, not just that a
+        header substring happens to appear before an invitation substring
+        somewhere unrelated in the same text.
+
+        The two surfaces use two separate, genuinely empty project fixtures.
+        `inspect` runs on its own untouched fixture (never one `start` has
+        already written a `.writwall-bootstrap/` into, which would reclassify
+        it as `partial_bootstrap` and route to the recovery coordinator
+        instead of the intended empty-project Architect branch); each result
+        confirms the observed lifecycle and branch before checking sequence.
+        """
+        reconciling_phrase = (
+            'After that required status header, begin the conversational body '
+            'as follows. Open with exactly: "Tell me what you are thinking."'
+        )
+
+        # Surface 1: zero-flag `writwall start` on a genuinely empty project
+        # writes the conversation-first prompt into HANDOFF.md.
+        start_result = self.run_lifecycle_start()
+        self.assertEqual(
+            start_result.returncode, 0, start_result.stdout + start_result.stderr)
+        handoff = self.handoff()
+        self.assertIn("Tell me what you are thinking.", handoff)
+        self.assertIn("one-line header", handoff)
+        self.assertIn(reconciling_phrase, handoff)
+
+        # Surface 2: `writwall inspect --role architect` on a distinct,
+        # untouched empty project -- run first on that fixture, never after
+        # `start` has already created a bootstrap there.
+        inspect_project = self.temp / "empty-inspect-project"
+        inspect_project.mkdir()
+        inspect_result = self.run_inspect("architect", inspect_project)
+        self.assertEqual(
+            inspect_result.returncode, 0,
+            inspect_result.stdout + inspect_result.stderr)
+        self.assertIn("Observed lifecycle state: clean_new", inspect_result.stdout)
+        self.assertIn(
+            "Act as the Architect for a new, empty project.", inspect_result.stdout,
+            "expected the empty-project branch, not the existing-project branch",
+        )
+        self.assertIn("Tell me what you are thinking.", inspect_result.stdout)
+        self.assertIn("one-line header", inspect_result.stdout)
+        self.assertIn(reconciling_phrase, inspect_result.stdout)
+        self.assertFalse(
+            (inspect_project / starter_module.OUTPUT_NAME).exists(),
+            "inspect must remain zero-write even on an empty project",
+        )
+
     def test_observed_boundaries_select_different_smallest_credible_topologies(self):
         local = self.run_idea_start()
         self.assertEqual(local.returncode, 0, local.stdout + local.stderr)
@@ -1118,6 +1333,38 @@ class StartWritwallTests(unittest.TestCase):
         self.assertIn("explicitly include creation and dispatch", flat)
         self.assertIn("Do not ask for the same decision again", flat)
         self.assertIn("perform every mechanically available authorized step", flat)
+
+    def test_general_handoff_announces_delegation_visibility_contract(self):
+        """RED: the emitted fresh-General handoff must make delegation visible.
+
+        Doctrine 0.9 7.11.5 defines distinguishable handoff states (prepared/
+        sent/acknowledged/returned/reviewed) and states plainly that a status
+        not actually observed is reported as unknown, never inferred as
+        favorable. The Owner separately identified invisible delegation as a
+        usability gap: within the existing handoff surface, the General must
+        announce the delegated role and bounded task, name a discoverable
+        monitoring location or state that none exists, identify the last
+        verified execution/handoff state, and name the result/question
+        return route. This is existing-surface instruction clarity (7.11.5,
+        7.12), not a new task UI or scheduler, so it is proven the same way
+        every other generated-prompt behavior here is proven: through the
+        emitted bytes of the existing public generator/inspect interface.
+        """
+        governance = self.project / "governance"
+        governance.mkdir()
+        for name in ("PLAN.md", "STATE.md", "ROUTING.md"):
+            (governance / name).write_text(f"# {name}\n", encoding="utf-8")
+        decision = governance / "decisions" / "DR-001.md"
+        decision.parent.mkdir()
+        decision.write_text(ratified_adoption_record(), encoding="utf-8")
+        result = self.run_lifecycle_start()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Act as a fresh General", result.stdout)
+        flat = " ".join(result.stdout.split())
+        self.assertIn("announce the delegated role and bounded task", flat)
+        self.assertIn("monitoring location", flat)
+        self.assertIn("last verified execution/handoff state", flat)
+        self.assertIn("result/question return route", flat)
 
     def test_inspect_architect_reenters_adopted_lockout_without_writes(self):
         governance = self.project / "governance"

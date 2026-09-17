@@ -906,3 +906,61 @@ commit authorized; no push, public projection, PR, release or adopter change.
 Issue #37 remains open pending separately authorized public delivery.
 Issues #38 and #41 remain proposals; no successor is activated. The Reviewer
 suggested future documentation-pinning coverage; it is not new authorized work.
+
+## 35. Architect-led coordination and bounded execution mandates — 2026-09-16
+
+Owner approved issuing WO-WW-030 Phase A from the reviewed draft, as recorded
+in its live issuance lifecycle. Prepare and independently review an exact
+methodology amendment and bounded implementation continuation for issue #41.
+Architect remains the human point of contact; General coordinates execution;
+Operators implement; Reviewer remains independent with intact Owner escalation.
+Specify finite execution-approved batches, preserved delegation, reserved
+milestones, blocking RFIs, no unapproved successors, meaningful status headers
+and compatible read-only existing-project realignment. Distinguish guidance
+from mechanical enforcement. Phase A changes candidate records only and stops
+at exact-text Owner ratification. Existing Doctrine 0.8 remains operative.
+No Phase B implementation, migration, commit, publication or release is authorized.
+
+### Owner disposition and bounded continuation — 2026-09-16
+
+The Owner subsequently accepted WO-WW-030 with its disclosed deviations and
+ratified the exact Doctrine 0.9 candidate, whole-file SHA-256
+0ACBF638D71C0F41CE059D1AE1F8BEB7DA3B23325942B9ACE00F21E2491E9FAB.
+The frozen continuation SHA-256 is
+9073E29218E13FC283E8A28B8393863EE9C2F5DB6B1872AE8327CF4F6AE0EDC0.
+The preceding Phase A-only paragraph records the original issuance boundary;
+this subsequent Owner disposition authorizes the bounded continuation below.
+Literal authority is recorded in the WO-WW-030 ratification-closeout record.
+
+## 36. Doctrine 0.9 implementation and v0.12.0 delivery — 2026-09-16
+
+Owner-authorized sequence: ordinary WO-WW-030 closeout; exact ratified Doctrine
+and DR-006 transcription; scoped WO-WW-031 implementation of the frozen
+continuation with its current-project routing prerequisite; independent review,
+native Windows/Ubuntu and installed-wheel verification; then, after required
+Owner acceptance milestones, coherently versioned v0.12.0 delivery containing
+the accepted WO-WW-027/028/029 additions and accepted WO-WW-031 work. Publication
+authority includes private push, public PR, CI-gated merge, tag and immutable
+release through exact validated grants and the existing publication/privacy gates.
+It is not a claim that these actions are already complete. Routine in-scope
+correction and verification require no repeated Owner permission.
+
+WO-WW-031 retains an explicit Owner acceptance milestone. No self-host migration
+or other-project access/migration is authorized; the self-hosted binding remains
+0.8. A later adopter handoff is informational and read-only. No successor beyond
+this finite implementation/delivery objective is authorized. Issue #38 provenance
+investigation is outside this sequence. Exact grant, routing and verification
+resource records must exist and validate before the corresponding execution.
+
+### Approved local gate-sequencing amendment — 2026-09-17
+
+Owner approved the exact ww031-gate-reconciliation.md proposal with "Approved.
+Resume." Proposal SHA-25644D5580C982610A31679D659703AA33D78B1EC022CEB47E0193C2E8FC4CAB75E.
+The specified five-path local projection-compatibility/retained-digest subset
+moves before031 acceptance, together with the exact two-reference Owner-recorder
+correction and eight-line/six-carrier General-only historical diagnostic. The
+current031 order enumerates every path and limit. Historical/detector repair is
+not authorized by that diagnostic. Full native PASS and independent review are
+still required; no acceptance criterion is waived. Version0.11.0 remains until
+acceptance, and ordinary closeout,0.12.0 versioning and all publication mechanics
+remain after the explicit031 Owner acceptance milestone. No migration is included.
