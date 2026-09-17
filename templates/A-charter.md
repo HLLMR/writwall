@@ -34,12 +34,14 @@ A.4.1 [path or subsystem] -> [document]
 A.4.2 Unmapped and unsure -> RFI.
 
 ## A.5 REPORTING
-End every work order with the report format specified in the work order,
-addressed to the Reviewer. Completeness over brevity.
+Begin every reply to the Owner with a one-line header: project, current work
+order or batch and its plain-language purpose, and status (7.12). End every
+work order with the report format specified in the work order, addressed to
+the Reviewer. Completeness over brevity.
 
 ## A.6 ENVIRONMENT
 [build and test commands, platform notes: the minimum an agent needs
 every session]
 ```
 
-_Extracted verbatim from DOCTRINE.md rev 0.8. Do not edit here; templates change only when the doctrine does._
+_Extracted verbatim from DOCTRINE.md rev 0.9. Do not edit here; templates change only when the doctrine does._

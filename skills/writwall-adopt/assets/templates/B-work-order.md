@@ -69,4 +69,4 @@ contradicts it.]
 <!-- END GENERATED BOUNDARIES -->
 ```
 
-_Extracted verbatim from DOCTRINE.md rev 0.8. Do not edit here; templates change only when the doctrine does._
+_Extracted verbatim from DOCTRINE.md rev 0.9. Do not edit here; templates change only when the doctrine does._

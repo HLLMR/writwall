@@ -38,14 +38,15 @@ assigned, an identifier's number is never reused for a different route.
 | **R.12** | **`SELF-HOSTING.md`** | Doctrine 5.1, Part 6, and Part 9; root `decisions/DR-001.md`; `governance/PLAN.md`; the adoption record and current observed state |
 | **R.14** | **`checks/check_work_order_dispatch.py`, `tests/test_check_work_order_dispatch.py`** | Doctrine 8.2.5 and `SELF-HOSTING.md` "Pre-dispatch validation." **Dispatch-preparation scope only** — this checker is read-only tooling run before an Implementer session is launched; it is not part of `.claude/hooks/wo_capability_wall.py` and is never a runtime enforcement surface. Resolved RFI-25/27/28 records are provenance in governed history, not routed ordinary context |
 | **R.15** | **`PUBLICATION.md`, `projection/**`, `scripts/build_public_projection.py`, `checks/check_public_projection.py`, `tests/test_public_projection.py`, `scripts/privacy_screen.py`, `docs/privacy-screen.md`** | `governance/PLAN.md` post-pilot sequence; DR-003; `LICENSE-MAP.md`; current source/distribution/license gates; the managed project-specific privacy screen held only in OS-local user state; the active projection work order. Projection work may derive and verify an external candidate but never authorizes publication, Git initialization, remote configuration, or visibility change |
+| **R.16** | **`START-HERE.md`, `docs/architect-interview.md`, `docs/day-zero-coordinator.md`, `pyproject.toml`, `tests/test_start_writwall.py`, `tests/test_distribution.py`** | Ratified Doctrine definitions 2.29-2.33, Parts 4, 6 and 7, 8.7 and Appendix A; `README.md`, `ADOPTING.md`, the three named entry documents, `skills/writwall-adopt/SKILL.md`, `scripts/start_writwall.py`, `checks/check_distribution.py`, `checks/check_coordinator_release.py`, `pyproject.toml`, the two named test files, and the active work order's exact implementation and verification requirements. Existing R.2/R.4/R.5/R.6/R.7 routes remain applicable to their mapped counterparts. This route supplies context; it grants no mutation, ratification, provider transmission, release or adopter authority. |
 | R.13 | Unmapped and unsure | **RFI.** Do not proceed on an inferred route |
 
-**R.14 and R.15 sit above R.13 in this table despite being numbered after it.**
+**R.14, R.15 and R.16 sit above R.13 in this table despite being numbered after it.**
 R.13, the unmapped fallback, stays the table's structurally last row by
 convention regardless of numeric order, so that "last row" and "fallback
 route" remain the same thing for a reader scanning the table.
-R.14 and R.15 were appended following the R.12/R.13 amendment pattern noted
-above; neither renumbers R.13 or changes R.13's meaning or position.
+R.14, R.15 and R.16 were appended following the R.12/R.13 amendment pattern noted
+above; none renumbers R.13 or changes R.13's meaning or position.
 
 ### R.11 note on authority
 
@@ -98,4 +99,4 @@ Coverage gaps discovered during a work order are RFIs, and their remedy is a rou
 
 ## Known limitation at ratification
 
-**No mechanical enforcement of routing exists.** No hook resolves these routes and injects the result; the capability wall covers grants, not routing. Until such a hook exists, R.1 through R.15 are honored by Dispatcher attachment (8.2.1) and by instruction — which 8.2.2 identifies as the weaker half of the control surface. This is an unenforced control, declared as such, and it is a candidate finding for the pilot.
+**No mechanical enforcement of routing exists.** No hook resolves these routes and injects the result; the capability wall covers grants, not routing. Until such a hook exists, R.1 through R.16 are honored by Dispatcher attachment (8.2.1) and by instruction — which 8.2.2 identifies as the weaker half of the control surface. This is an unenforced control, declared as such, and it is a candidate finding for the pilot.

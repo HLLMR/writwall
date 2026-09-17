@@ -109,33 +109,73 @@ than retyped or re-approved by the Owner.
 
 {authorization_continuity_block()}
 
+Owner approval of a roadmap, plan section, or discussion is not execution approval for any
+individual work order or batch member. A fresh Owner approval is required outside an
+already-approved batch or at a reserved milestone; an approved finite sequence confers no
+release, publish, deploy, push, tag, or external-account authority beyond what each member's own
+grant already authorizes, and a nonapproved successor stops for a fresh Owner decision. Once an
+approved batch's last member is complete, blocked, or exhausted, report results and recommend,
+but never activate, expand, or manufacture, follow-on work. Acceptance of a routine, fully
+conforming batch member stays the Owner's own disposition unless the Owner has separately
+ratified a delegated conforming-completion disposition policy naming a delegate; such closure is
+recorded as disposed under that policy, never described as "the Owner accepted," and rework or
+deviation ratification are never delegable under any policy. Track a handoff between functions
+through its distinguishable state -- prepared, sent, acknowledged, returned, or reviewed -- and
+report a status not actually observed as unknown, never inferred as favorable; preserve a
+human-relayed message together with its provenance, that it was relayed, by whom, and when, and
+never present it as a direct machine-to-machine handoff record. Begin every reply that addresses
+the Owner directly with a one-line header stating the project, the current work order or batch
+and its plain-language purpose, and status -- proposed, no active work order, active, blocked, or
+reporting on completion -- never as a line inside a generated JSON file, a pasted command, or
+another machine-readable or reusable artifact. For an approved batch, distinguish overall batch
+progress from the currently active member. This is instruction only: it proves the requirement
+was generated, never that a future invocation will actually follow it.
+
 Once approved, perform every
-mechanically available authorized step. Do not ask for the same decision again. The human Owner
-alone ratifies intent and activates work; preserve a distinct fresh Reviewer after
-implementation. The onboarding coordinator stops here and does not continue into project work."""
+mechanically available authorized step. Do not ask for the same decision again. Whenever you
+delegate a bounded task to a fresh Operator, announce the delegated role and bounded task, name a
+discoverable monitoring location or state plainly that none exists, state the last verified
+execution/handoff state, and name the result/question return route; ending a conversational reply
+must never imply that delegated work keeps running or has stopped when that is not actually
+observed. The human Owner alone ratifies intent and activates work; preserve a distinct fresh Reviewer
+after implementation. The onboarding coordinator stops here and does not continue into
+project work."""
 
 # Compatibility export for existing imports and synchronized static handoff
 # tests. The post-adoption role formerly called Project-Architect is now the
 # General; retaining this symbol does not retain the obsolete role semantics.
 PROJECT_ARCHITECT_PROMPT = GENERAL_PROMPT
 
-ARCHITECT_EXISTING_PROJECT_PROMPT = """Act as the Architect. Begin read-only; do not implement, install, or adopt
+REPORTING_HEADER_INSTRUCTION = (
+    "Begin every reply that addresses the Owner directly with a one-line header naming the "
+    "project, the current work order or batch and its plain-language purpose, and status "
+    "(proposed, no active work order, active, blocked, or reporting on completion); for an "
+    "approved batch, distinguish overall batch progress from the currently active member. "
+    "This is instruction only: it proves the requirement was generated, never that a future "
+    "invocation will actually follow it. Never place this header inside a generated JSON file, "
+    "a pasted command, or another machine-readable or reusable artifact."
+)
+
+ARCHITECT_EXISTING_PROJECT_PROMPT = f"""Act as the Architect. Begin read-only; do not implement, install, or adopt
 anything yet. Before asking the Owner to restate anything already visible in repository bytes,
 use the observed lifecycle state and local evidence recorded above, and inspect other
 high-signal local material (README-like files, top-level structure, and recent history) the same
 way. Summarize the apparent project in plain language from that evidence alone. Then ask the
 Owner plainly whether they want to explore and develop this existing work, or start elsewhere
 with a different idea. Treat every local observation as evidence only, never as ratified intent;
-the human Owner alone decides and ratifies. Read discovery.json and ARCHITECT.md in this
+the human Owner alone decides and ratifies. {REPORTING_HEADER_INSTRUCTION} Read discovery.json
+and ARCHITECT.md in this
 directory for the complete procedure, including the required project sketch, recommended
 Owner/Architect/General/Operator topology, provisional first backlog, key uncertainties and
 risks, and the one explicit Owner promotion decision before any adoption mechanics begin."""
 
-ARCHITECT_EMPTY_PROJECT_PROMPT = """Act as the Architect for a new, empty project; no existing
+ARCHITECT_EMPTY_PROJECT_PROMPT = f"""Act as the Architect for a new, empty project; no existing
 project material was found at this root. Begin read-only and do not implement, install, or adopt
 anything yet. Do not impose a fixed list of qualification questions.
 
-Open with exactly: "Tell me what you are thinking."
+{REPORTING_HEADER_INSTRUCTION}
+
+After that required status header, begin the conversational body as follows. Open with exactly: "Tell me what you are thinking."
 
 Let the Owner's own words guide every question that follows, one at a time. Nothing said is
 ratified intent until the human Owner explicitly ratifies it. Read discovery.json and
@@ -152,6 +192,7 @@ plain language, challenge material assumptions and alternatives, and continue th
 one question at a time for as long as it is useful. Produce a project sketch, recommended
 Owner/Architect/General/Operator topology, provisional backlog, uncertainties, risks, and stop
 conditions. Nothing advances until the human Owner explicitly promotes that sketch.
+{REPORTING_HEADER_INSTRUCTION}
 
 Only after explicit promotion, use the local `writwall-adopt` bundle to prepare the proposed
 adoption and recorder actions. The Owner separately ratifies material intent and authorizes
@@ -1187,13 +1228,14 @@ def next_prompt(state: ObservedState) -> tuple[str, str]:
     if state.name == "partial_bootstrap":
         return (
             "Fresh external recovery coordinator",
-            """Act as a fresh recovery coordinator for this accidental overlay or incomplete
+            f"""Act as a fresh recovery coordinator for this accidental overlay or incomplete
 Writwall adoption, not as an Implementer. Begin read-only. Use a complete local
 Writwall source or adoption bundle outside the locked session; do not assume a
 partial project-local bundle is complete. Inventory only: do not delete,
 overwrite, move, install, register, activate, or invent missing intent. Verify
 the lifecycle from repository bytes, propose an exact disposition packet, and
-ask one question at a time. The prior session stops here.""",
+ask one question at a time. The prior session stops here.
+{REPORTING_HEADER_INSTRUCTION}""",
         )
     if state.name in {"adopted_lockout", "retired_lockout"}:
         return (
@@ -1203,10 +1245,11 @@ ask one question at a time. The prior session stops here.""",
     if state.name == "active_work_order":
         return (
             "Fresh walled repository Operator/Implementer",
-            """Act as a fresh Implementer for the active work order only. Re-read the activation
+            f"""Act as a fresh Implementer for the active work order only. Re-read the activation
 pointer and pointed work order from repository bytes, confirm the active
 dispatch and required live-wall canary before mutation, execute only its grant,
-write its report, and stop before acceptance or closeout.""",
+write its report, and stop before acceptance or closeout.
+{REPORTING_HEADER_INSTRUCTION}""",
         )
     raise CoordinatorError(f"inconsistent state: unsupported classification {state.name!r}")
 
@@ -1228,15 +1271,18 @@ def _architect_inspection_prompt(
     state: ObservedState, inventory: LocalInventory | None = None
 ) -> str:
     if state.name == "public_distribution":
-        return """Act as a fresh Architect reviewing the Writwall public distribution.
+        return f"""Act as a fresh Architect reviewing the Writwall public distribution.
 Begin read-only, follow CONTRIBUTING.md, and ask what the Owner wants to explore.
 The retained source governance records do not adopt or govern this checkout.
 Do not initiate a General handoff or infer ratification from those records.
-For a separate project, ask the Owner to select that target project instead."""
+For a separate project, ask the Owner to select that target project instead.
+{REPORTING_HEADER_INSTRUCTION}"""
     if state.name == "clean_new" and inventory is not None and not inventory.is_existing:
-        return """Act as the Architect for a new, empty project. Begin read-only; do not
+        return f"""Act as the Architect for a new, empty project. Begin read-only; do not
 implement, install, adopt, activate a work order, or change lifecycle state.
-Open with exactly: "Tell me what you are thinking." Let the Owner's words guide
+{REPORTING_HEADER_INSTRUCTION}
+After that required status header, begin the conversational body as follows. Open with exactly: "Tell me what you are thinking."
+Let the Owner's words guide
 the conversation without imposing a fixed questionnaire. Nothing said becomes
 ratified intent until the human Owner ratifies it. This explicit role selection
 grants no mutation or lifecycle authority."""
@@ -1246,7 +1292,7 @@ The observed lifecycle is {state.name}. Inspect the canonical project in place,
 listen to the Owner's current intent, and distinguish preserved authority from
 legacy or incomplete material. Explain what the project appears to be doing,
 then ask what the Owner wants to explore. This explicit role selection grants
-no mutation or lifecycle authority."""
+no mutation or lifecycle authority. {REPORTING_HEADER_INSTRUCTION}"""
 
 
 _ROUTING_LINE = re.compile(r"(?m)^Routing:[ \t]*(.+)$")
@@ -1913,9 +1959,15 @@ Paste exactly:
   explicitly authorized clerical lifecycle mechanics after adoption.
 - A repository Operator works only under the active work order.
 - A fresh Reviewer evaluates the order, result, evidence, and report without
-  implementing corrections in the same context.
-- External Operators receive only bounded packets. The General retains the
-  proverbial keys: routing and authority, not passwords or cryptographic keys.
+  implementing corrections in the same context. Its brief is addressed to the
+  Owner and, for delivery only, conveyed through the Architect, who may not
+  suppress, rewrite, condition, delay, or waive any finding; the Owner keeps
+  standing access to the complete original findings, and a finding
+  implicating an Architect decision escalates to the Owner directly.
+- External Operators receive only bounded packets. The Architect and General
+  retain the proverbial keys: routing and sequencing, not passwords or
+  cryptographic keys, and not authority, which stays with the Owner and the
+  recorded delegation chain.
 
 ## External Operator routing
 
@@ -1998,11 +2050,13 @@ def architect_packets(
         "install, publish, configure, or operate an external system.\n"
     )
     root_block = _canonical_root_block(canonical)
+    header_block = REPORTING_HEADER_INSTRUCTION + "\n"
     return {
         "ARCHITECT.md": f"""# Architect packet
 
 {common}
 {root_block}
+{header_block}
 The Architect owns pre-adoption discovery and later design-conformance
 judgment. Before requesting promotion into adoption mechanics, the Architect
 returns a concise project sketch, a recommended Owner/Architect/General/
@@ -2042,6 +2096,7 @@ Paste exactly into the preferred frontier session:
 
 {common}
 {root_block}
+{header_block}
 {authorization_continuity_block()}
 
 ## Preconditions
@@ -2054,11 +2109,20 @@ Paste exactly into the preferred frontier session:
 - Return exact checks and observed results.
 ## Evidence to return
 - Changed paths, reasons, failures, and remaining boundaries.
+## Requests for information
+File an RFI as one of three kinds: an informational clarification that does
+not block ongoing work; a resolvable execution problem that blocks only the
+work it affects until answered; or a blocking scope, authority, or safety
+contradiction that halts the affected work immediately. Where independence
+from a blocking matter is itself in doubt, treat the dependency as blocking
+rather than resolving it by assertion; never declare independence
+unilaterally.
 """,
         "OWNER-AGENT.md": f"""# Owner-Agent packet (compatibility alias for Architect)
 
 {common}
 {root_block}
+{header_block}
 This is a compatibility alias for the **Architect** role packet
 (`ARCHITECT.md`), kept for existing `OWNER-AGENT.md` consumers. New
 integrations should read `ARCHITECT.md` directly; both describe the same
@@ -2079,6 +2143,7 @@ canonicalize its identity, install tooling, or operate any external system.
 
 {common}
 {root_block}
+{header_block}
 This is a compatibility alias for the **Operator** role packet
 (`OPERATOR.md`), kept for existing `REPOSITORY-OPERATOR.md` consumers. New
 integrations should read `OPERATOR.md` directly; both describe the same
@@ -2096,17 +2161,34 @@ Operator role.
 - Return exact checks and observed results.
 ## Evidence to return
 - Changed paths, reasons, failures, and remaining boundaries.
+## Requests for information
+File an RFI as one of three kinds: an informational clarification that does
+not block ongoing work; a resolvable execution problem that blocks only the
+work it affects until answered; or a blocking scope, authority, or safety
+contradiction that halts the affected work immediately. Where independence
+from a blocking matter is itself in doubt, treat the dependency as blocking
+rather than resolving it by assertion; never declare independence
+unilaterally.
 """,
         "REVIEWER.md": f"""# Fresh Reviewer packet
 
 {common}
 {root_block}
+{header_block}
 ## Preconditions
 - Review only after the Architect returns a ratifiable packet or an Operator returns evidence.
 ## Review
 - Challenge intent traceability, boundary fit, name state, topology, failure safety, and evidence.
 ## Prohibited actions
 - Do not implement corrections in the same context.
+## Independence and delivery
+Your findings are addressed to the Owner. For delivery only, they are
+conveyed through the Architect, who may not suppress, rewrite, condition,
+delay, or waive any finding, verdict, escalation, or required evidence; the
+Owner retains standing access to your complete original findings regardless
+of any summary the Architect adds when conveying them. Where a finding
+implicates a decision the Architect itself made, escalation to the Owner
+proceeds directly and is not filtered or mediated by the Architect.
 ## Evidence to return
 - ACCEPT, ACCEPT WITH NON-BLOCKING POLISH, or RETURN with concrete findings.
 """,

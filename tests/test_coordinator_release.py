@@ -51,7 +51,7 @@ class CoordinatorReleaseTests(unittest.TestCase):
     def run_checker(self, candidate: Path, *extra: str):
         arguments = [str(candidate), *extra]
         if "--expected-tag" not in extra:
-            arguments.extend(("--expected-tag", "v0.11.0"))
+            arguments.extend(("--expected-tag", "v0.12.0"))
         return subprocess.run(
             [sys.executable, "-B", str(CHECKER), *arguments],
             cwd=REPO_ROOT,
@@ -510,15 +510,15 @@ class CoordinatorReleaseTests(unittest.TestCase):
         pyproject = candidate / "pyproject.toml"
         pyproject.write_text(
             pyproject.read_text(encoding="utf-8").replace(
-                'version = "0.11.0"', 'version = "0.9.0"'
+                'version = "0.12.0"', 'version = "0.9.0"'
             ),
             encoding="utf-8",
             newline="\n",
         )
-        result = self.run_checker(candidate, "--expected-tag", "v0.11.0")
+        result = self.run_checker(candidate, "--expected-tag", "v0.12.0")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(
-            "candidate version '0.9.0' does not match intended tag 'v0.11.0'",
+            "candidate version '0.9.0' does not match intended tag 'v0.12.0'",
             result.stdout + result.stderr,
         )
 
@@ -564,23 +564,25 @@ class CoordinatorReleaseTests(unittest.TestCase):
     def test_release_identity_and_public_payload_are_coherent(self):
         with (REPO_ROOT / "pyproject.toml").open("rb") as handle:
             project = tomllib.load(handle)["project"]
-        self.assertEqual(project["version"], "0.11.0")
+        self.assertEqual(project["version"], "0.12.0")
         readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
         adopting = (REPO_ROOT / "ADOPTING.md").read_text(encoding="utf-8")
         contributing = (REPO_ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
         publication = (REPO_ROOT / "PUBLICATION.md").read_text(encoding="utf-8")
         start = (REPO_ROOT / "START-HERE.md").read_text(encoding="utf-8")
-        tagged_archive = "archive/refs/tags/v0.11.0.zip"
+        skill = (REPO_ROOT / "skills" / "writwall-adopt" / "SKILL.md").read_text(
+            encoding="utf-8")
+        tagged_archive = "archive/refs/tags/v0.12.0.zip"
         self.assertIn(tagged_archive, readme)
         self.assertIn(tagged_archive, adopting)
         self.assertIn(tagged_archive, start)
-        self.assertIn("--expected-tag v0.11.0", publication)
-        self.assertIn("--expected-tag v0.11.0", contributing)
+        self.assertIn("--expected-tag v0.12.0", publication)
+        self.assertIn("--expected-tag v0.12.0", contributing)
         for document in (readme, adopting, start):
             self.assertNotIn("not yet published", document)
             self.assertIn(
                 'python -m pip install '
-                '"https://github.com/HLLMR/writwall/archive/refs/tags/v0.11.0.zip"',
+                '"https://github.com/HLLMR/writwall/archive/refs/tags/v0.12.0.zip"',
                 document,
             )
             self.assertIn("writwall inspect", document)
@@ -589,6 +591,23 @@ class CoordinatorReleaseTests(unittest.TestCase):
         self.assertIn("Release `v0.9.1` corrected", start)
         self.assertIn("Release `v0.9.2` corrects", start)
         self.assertIn("Release `v0.9.3` adds", start)
+        # Accepted brief/preflight capabilities are now released in 0.12.0,
+        # not caveated as unreleased-current-branch source work: the same
+        # documents this method already reads must no longer carry that
+        # caveat anywhere it previously qualified `--brief` or the
+        # operational-preflight contract.
+        for document in (readme, adopting, start, publication, skill):
+            self.assertNotIn("unreleased source work", document)
+            self.assertNotIn("not part of any published release", document)
+        available_since_marker = "available since `v0.12.0`"
+        for document in (adopting, start, skill):
+            normalized = " ".join(document.split())
+            self.assertGreaterEqual(
+                normalized.count(available_since_marker), 2,
+                f"expected at least one marker each for --brief and the "
+                f"operational-preflight capability, got "
+                f"{normalized.count(available_since_marker)}",
+            )
         public_files = PUBLIC_FILES.read_text(encoding="utf-8").splitlines()
         self.assertIn("checks/check_coordinator_release.py", public_files)
         self.assertIn("tests/test_coordinator_release.py", public_files)

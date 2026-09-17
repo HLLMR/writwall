@@ -16,4 +16,4 @@ C.6 REVIEWER CONFIDENCE: HIGH | MEDIUM | LOW. [LOW triggers C.5.]
 Reviewer notes, for the record and not the Owner: [anything longer]
 ```
 
-_Extracted verbatim from DOCTRINE.md rev 0.8. Do not edit here; templates change only when the doctrine does._
+_Extracted verbatim from DOCTRINE.md rev 0.9. Do not edit here; templates change only when the doctrine does._

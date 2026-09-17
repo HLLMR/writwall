@@ -177,6 +177,53 @@ def materialize_source_provenance_fixture(repo: Path) -> Path:
     return repo
 
 
+def normalize_identity_baseline(repo: Path) -> Path:
+    """Recompute this disposable fixture's own retained-identity digests.
+
+    ``identity/legacy-references.json`` pins each retained path's SHA-256 as
+    evidence that specific historical bytes have not silently drifted in the
+    real, governed source repository -- that is a source/release-acceptance
+    concern, and this function makes no claim about it either way. A test
+    fixture copied by ``copy_repo`` is not that repository: many tests in
+    this module deliberately mutate the copy afterward (revision text,
+    work-order fixtures, CRLF conversion, and so on), and unrelated ordinary
+    churn in the real repository's own governance instance (LOG/PLAN/STATE)
+    is expected between sessions. Pinning the real repository's own
+    historical hashes against a disposable copy therefore asserts nothing
+    about drift in that copy; it just fails on the first incidental byte
+    difference between the two, before any test-specific mutation runs.
+
+    This recomputes each retained entry's ``sha256`` from the corresponding
+    file exactly as it exists in THIS destination, right now -- before any
+    later, test-specific mutation in this module -- and writes only this
+    disposable copy's own ``identity/legacy-references.json``. It never
+    touches the real, governed source repository's identity file, any other
+    real authority or probe-evidence file, or any field on a retained entry
+    besides ``sha256`` (path, context, ``projection_sha256``,
+    ``projection_transform``, schema, and the ``current``/``former`` blocks
+    are preserved verbatim, and no entry is added or removed). Because this
+    runs before the mutations below, a genuine identity-negative test that
+    later edits a retained file (or an unrelated one) still produces a real,
+    detectable mismatch; this only removes the false mismatch that copying
+    the repository into a new, disposable location and running other tests
+    against it would otherwise introduce on every run. This is controlled
+    fixture baseline state for this test module only -- it is never a claim
+    that any source, release, or publication identity gate has passed.
+    """
+    manifest_path = repo / "identity" / "legacy-references.json"
+    if not manifest_path.is_file():
+        return repo
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    for entry in payload.get("retained", []):
+        target = repo / entry["path"]
+        if target.is_file():
+            entry["sha256"] = hashlib.sha256(target.read_bytes()).hexdigest()
+    manifest_path.write_text(
+        json.dumps(payload, indent=2) + "\n", encoding="utf-8", newline="\n"
+    )
+    return repo
+
+
 def copy_repo(destination: Path) -> Path:
     shutil.copytree(
         REPO_ROOT, destination,
@@ -199,7 +246,13 @@ def copy_repo(destination: Path) -> Path:
         }],
     }]}}, indent=2) + "\n", encoding="utf-8", newline="\n")
     materialize_source_provenance_fixture(destination)
+    normalize_identity_baseline(destination)
     return pre_adoption_fixture(clear_transient_release_state(destination))
+
+
+_DC1_EFFECTIVE_RE = re.compile(
+    r"^\|\s*Effective\s*\|\s*(\d{4}-\d{2}-\d{2}),\s*ratified by (DR-\d+)\s*\(`([^`]+)`\)")
+_FOOTER_LINE_RE = re.compile(r"^\*Revision .*\*$")
 
 
 class DistributionTestCase(unittest.TestCase):
@@ -207,6 +260,47 @@ class DistributionTestCase(unittest.TestCase):
         self.tmp = Path(tempfile.mkdtemp()).resolve()
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         self.repo = copy_repo(self.tmp / "writwall")
+
+    def current_control(self):
+        """Derive current revision/ratification/footer facts from this
+        fixture's own, as-yet-unmutated DOCTRINE.md, rather than a
+        hardcoded revision string. This keeps tests meaningful across a
+        future ratified transition instead of pinning one revision number
+        that goes stale the moment the Owner ratifies the next one. Call
+        this before any of the mutations below, in the same style as the
+        historical-migration-specific tests, which deliberately keep their
+        own fixed revision numbers because they test one named transition."""
+        text = (self.repo / "DOCTRINE.md").read_text(encoding="utf-8")
+        lines = text.splitlines()
+        revision = None
+        for line in lines:
+            if "|" not in line:
+                continue
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if len(cells) == 2 and cells[0].lower() == "revision" and revision is None:
+                revision = cells[1]
+        self.assertIsNotNone(revision, "DOCTRINE.md DC.1 revision is unreadable")
+        effective_date = ratifying_dr = ratifying_path = None
+        for line in lines:
+            match = _DC1_EFFECTIVE_RE.match(line.strip())
+            if match:
+                effective_date, ratifying_dr, ratifying_path = match.groups()
+                break
+        self.assertIsNotNone(
+            ratifying_path, "DOCTRINE.md DC.1 Effective row is unreadable")
+        footer_line = next(
+            (line.strip() for line in reversed(lines)
+             if _FOOTER_LINE_RE.match(line.strip())),
+            None,
+        )
+        self.assertIsNotNone(footer_line, "DOCTRINE.md has no revision footer")
+        return {
+            "revision": revision,
+            "effective_date": effective_date,
+            "ratifying_dr": ratifying_dr,
+            "ratifying_path": ratifying_path,
+            "footer_line": footer_line,
+        }
 
     def check(self, *extra):
         return subprocess.run(
@@ -233,19 +327,22 @@ class DistributionTestCase(unittest.TestCase):
         path.write_text(text.replace(old, new) if count == -1
                         else text.replace(old, new, count), encoding="utf-8", newline="\n")
 
-    def set_dc2_ratified(self, value):
-        """Rewrite only the DC.2 ratified cell for the current revision, never
-        the row's prose, which changes as corrections are recorded."""
+    def set_dc2_ratified(self, value, revision=None):
+        """Rewrite only the DC.2 ratified cell for the given (or, by default,
+        this fixture's actual current) revision, never the row's prose,
+        which changes as corrections are recorded."""
+        revision = revision or self.current_control()["revision"]
         path = self.repo / "DOCTRINE.md"
         lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+        prefix = f"| {revision} |"
         for index, line in enumerate(lines):
-            if line.startswith("| 0.8 |"):
+            if line.startswith(prefix):
                 cells = line.rstrip("\r\n").strip("|").split("|")
                 cells[-1] = f" {value} "
                 lines[index] = "|" + "|".join(cells) + "|\n"
                 break
         else:
-            self.fail("no DC.2 row for revision 0.8")
+            self.fail(f"no DC.2 row for revision {revision}")
         path.write_text("".join(lines), encoding="utf-8", newline="\n")
 
     def set_dc1_status(self, value):
@@ -258,24 +355,30 @@ class DistributionTestCase(unittest.TestCase):
 
     def make_candidate(self):
         """Return the fixture to a pre-ratification candidate state, including
-        the artefacts that state requires."""
+        the artefacts that state requires. Derived from this fixture's own
+        actual current revision/footer/ratification-record/effective-date,
+        never a hardcoded revision string, so this stays meaningful across a
+        future ratified transition."""
+        control = self.current_control()
+        revision = control["revision"]
+        date = control["effective_date"]
         self.set_dc1_status("Ratification candidate")
-        self.set_dc2_ratified("Pending")
-        self.edit("DOCTRINE.md", "*Revision 0.8. Ratified 2026-08-21 by DR-005.",
-                  "*Revision 0.8. Ratification candidate.")
+        self.set_dc2_ratified("Pending", revision)
+        self.edit("DOCTRINE.md", control["footer_line"],
+                  f"*Revision {revision}. Ratification candidate.*")
         draft = self.repo / "decisions" / "RATIFICATION-RECORD-DRAFT.md"
-        draft.write_text("# DRAFT — NO AUTHORITY\n\nRevision 0.8, unsigned.\n",
+        draft.write_text(f"# DRAFT — NO AUTHORITY\n\nRevision {revision}, unsigned.\n",
                          encoding="utf-8", newline="\n")
-        (self.repo / "decisions" / "DR-005.md").unlink()
+        (self.repo / control["ratifying_path"]).unlink()
         for name in ("README.md", "ADOPTING.md", "SELF-HOSTING.md", "decisions/README.md"):
             path = self.repo / name
             path.write_text(
                 path.read_text(encoding="utf-8")
-                    .replace("ratified 2026-08-21", "pending ratification")
-                    .replace("Ratified 2026-08-21", "Pending ratification")
-                    .replace("ratified on 2026-08-21", "not yet ratified")
-                    .replace("ratified Doctrine revision 0.8 on 2026-08-21",
-                             "not yet ratified Doctrine revision 0.8")
+                    .replace(f"ratified {date}", "pending ratification")
+                    .replace(f"Ratified {date}", "Pending ratification")
+                    .replace(f"ratified on {date}", "not yet ratified")
+                    .replace(f"ratified Doctrine revision {revision} on {date}",
+                             f"not yet ratified Doctrine revision {revision}")
                     .replace("is the current ratified revision",
                              "is a ratification candidate")
                     .replace("is the current ratified methodology revision",
@@ -288,6 +391,25 @@ class CheckerPassesOnCleanTree(DistributionTestCase):
         result = self.check()
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertIn("all distribution checks passed", result.stdout)
+
+
+class RatifiedNormativeQuotationTests(DistributionTestCase):
+    def test_ratified_normative_quotation_does_not_fail_the_public_checker(self):
+        """The public `check_distribution.py` command must not treat
+        DOCTRINE.md's own ratified 7.12.1 status-value definition ("an idea,
+        sketch, or draft not yet ratified or activated") as a claim that the
+        Doctrine document itself is an unratified candidate. That definition
+        names a work-order/batch status value; it asserts nothing about
+        DOCTRINE.md's own DC.1 state, which this same checker already
+        verifies directly from DC.1/DC.2 and the revision footer.
+        """
+        result = self.check()
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertNotIn(
+            "not yet ratified", result.stdout,
+            "the public checker must not flag DOCTRINE.md's own ratified "
+            "7.12.1 text as an unratified-candidate claim",
+        )
 
 
 class CIWorkflowTests(DistributionTestCase):
@@ -548,43 +670,60 @@ class CheckerFailureCategories(DistributionTestCase):
         self.assert_fails(self.check(), "markers")
 
     def test_missing_ratification_record_while_ratified_fails(self):
-        (self.repo / "decisions" / "DR-005.md").unlink()
+        ratifying_path = self.current_control()["ratifying_path"]
+        (self.repo / ratifying_path).unlink()
         result = self.check()
         self.assertNotEqual(result.returncode, 0)
         self.assertTrue("markers" in result.stdout or "required-file" in result.stdout)
 
     def test_ratification_record_still_carrying_draft_marker_fails(self):
-        path = self.repo / "decisions" / "DR-005.md"
-        path.write_text("# DRAFT — NO AUTHORITY\n\nRevision ratified | 0.8\n",
-                        encoding="utf-8", newline="\n")
+        control = self.current_control()
+        path = self.repo / control["ratifying_path"]
+        path.write_text(
+            f"# DRAFT — NO AUTHORITY\n\nRevision ratified | {control['revision']}\n",
+            encoding="utf-8", newline="\n")
         self.assert_fails(self.check(), "markers")
 
 
 class DoctrineRatificationTests(DistributionTestCase):
-    def test_current_revision_resolves_to_dr005_ratified_0_8(self):
+    def test_current_revision_resolves_to_its_ratifying_decision_record(self):
+        control = self.current_control()
         result = self.check()
         self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertIn("doctrine revision 0.8", result.stdout)
+        self.assertIn(f"doctrine revision {control['revision']}", result.stdout)
         self.assertIn("DC.1 status 'Ratified'", result.stdout)
+        self.assertTrue(
+            (self.repo / control["ratifying_path"]).is_file(),
+            f"{control['ratifying_path']} does not exist",
+        )
         bundled = (self.repo / "skills" / "writwall-adopt" / "references" /
                    "DOCTRINE.md").read_bytes()
         canonical = (self.repo / "DOCTRINE.md").read_bytes()
         self.assertEqual(bundled, canonical)
 
-    def test_second_dr_row_claiming_0_8_ratified_is_ambiguous_and_fails(self):
+    def test_second_dr_row_claiming_current_revision_ratified_is_ambiguous_and_fails(self):
         """resolve_ratification_record is fail-closed: exactly one decisions/
-        DR-*.md record may name '| Revision ratified | 0.8 |'. A second one
-        makes the ratification record ambiguous rather than picked by name."""
-        duplicate = self.repo / "decisions" / "DR-006.md"
+        DR-*.md record may name '| Revision ratified | <current> |'. A second
+        one makes the ratification record ambiguous rather than picked by
+        name. Uses filename "DR-999.md", chosen because it never collides
+        with a real, numbered decision record -- this must never overwrite
+        the actual current ratification record the fixture already carries.
+        """
+        control = self.current_control()
+        duplicate = self.repo / "decisions" / "DR-999.md"
+        self.assertFalse(
+            duplicate.exists(),
+            "fixture filename collides with a real decision record",
+        )
         duplicate.write_text(
-            "# DR-006: Duplicate ratification claim (fixture)\n\n"
+            "# DR-999: Duplicate ratification claim (test fixture)\n\n"
             "| Field | Value |\n"
             "|---|---|\n"
-            "| Record | DR-006, methodology-source decision |\n"
+            "| Record | DR-999, methodology-source decision (test fixture) |\n"
             "| Owner | HLLMR |\n"
-            "| Date | 2026-08-21 |\n"
-            "| Revision ratified | 0.8 |\n"
-            "| Supersedes | 0.7 |\n",
+            f"| Date | {control['effective_date']} |\n"
+            f"| Revision ratified | {control['revision']} |\n"
+            "| Supersedes | n/a |\n",
             encoding="utf-8", newline="\n")
         result = self.check()
         self.assert_fails(result, "markers")
@@ -609,9 +748,16 @@ class MigrationGuideZeroSevenTests(DistributionTestCase):
         self.assert_fails(self.check(), "bundle")
 
     def test_footer_still_calling_it_a_candidate_fails(self):
-        self.edit("DOCTRINE.md", "*Revision 0.8. Ratified 2026-08-21 by DR-005.",
-                  "*Revision 0.8. Ratification candidate.")
-        self.assert_fails(self.check(), "markers")
+        control = self.current_control()
+        self.edit("DOCTRINE.md", control["footer_line"],
+                  f"*Revision {control['revision']}. Ratification candidate.*")
+        result = self.check()
+        self.assert_fails(result, "markers")
+        self.assertIn(
+            f"DOCTRINE.md footer still calls {control['revision']} a candidate "
+            "while DC.1 records it as ratified",
+            result.stdout,
+        )
 
     def test_readme_still_calling_it_a_candidate_fails(self):
         readme = self.repo / "README.md"
@@ -620,10 +766,13 @@ class MigrationGuideZeroSevenTests(DistributionTestCase):
         self.assert_fails(self.check(), "markers")
 
     def test_ratified_claim_while_candidate_fails(self):
+        control = self.current_control()
         self.make_candidate()
         readme = self.repo / "README.md"
-        readme.write_text(readme.read_text(encoding="utf-8") +
-                          "\nThis is the ratified revision 0.8.\n", encoding="utf-8", newline="\n")
+        readme.write_text(
+            readme.read_text(encoding="utf-8") +
+            f"\nThis is the ratified revision {control['revision']}.\n",
+            encoding="utf-8", newline="\n")
         self.assert_fails(self.check(), "markers")
 
     def test_missing_ratification_draft_fails_while_candidate(self):
@@ -732,6 +881,7 @@ class SelfHostingSegregationTests(DistributionTestCase):
             "references/migration-guides/0.1-to-0.6.md",
             "references/migration-guides/0.6-to-0.7.md",
             "references/migration-guides/0.7-to-0.8.md",
+            "references/migration-guides/0.8-to-0.9.md",
             "references/name-clearance.md",
         ])
 
@@ -991,6 +1141,61 @@ class V01DeterminationTests(DistributionTestCase):
         self.assertEqual(self.check().returncode, 0)
 
 
+class DoctrineBodyCandidateContradictionRegressionTests(DistributionTestCase):
+    """DOCTRINE.md remains in CANDIDATE_SCAN_DOCUMENTS; only clause 7.12.1's
+    own known-normative text is exempted, and only by its actual position in
+    the document, never the whole document and never every occurrence of a
+    candidate phrase. Each test method below gets its own clean fixture copy
+    from `setUp` and injects independently, so neither case's assertion can
+    be satisfied by the other case's leftover injected text. Each mirrors
+    its injected sentence into the bundled copy so only the markers
+    contradiction is exercised, never an incidental bundle-drift failure.
+    """
+
+    ANCHOR = (
+        "The doctrine is a governance methodology for building software "
+        "with AI agents without losing control of intent, scope, or truth."
+    )
+
+    def inject(self, replacement: str) -> None:
+        self.edit("DOCTRINE.md", self.ANCHOR, replacement)
+        self.edit(
+            "skills/writwall-adopt/references/DOCTRINE.md",
+            self.ANCHOR, replacement)
+
+    def test_is_a_candidate_phrase_outside_dc1_dc2_footer_is_caught(self):
+        """The original case, unrelated to the 7.12.1 exemption's wording at
+        all -- this must never regress."""
+        control = self.current_control()
+        self.inject(self.ANCHOR + f" Revision {control['revision']} is a candidate.")
+        result = self.check()
+        self.assert_fails(result, "markers")
+
+    def test_7121_phrase_quoted_outside_its_own_clause_is_caught(self):
+        """The exact counterexample a positionally-unscoped exemption would
+        miss: quoting 7.12.1's benign phrase itself ("a draft not yet
+        ratified or activated") in an ordinary sentence OUTSIDE clause
+        7.12.1 -- before Part 1 -- falsely claiming the Doctrine document is
+        unratified. A whole-document string or regex exemption misses this;
+        a clause-scoped one still catches it. This is a coverage-isolation
+        correction, not a claim that the current, already-scoped
+        implementation will fail it; the Coordinator has already separately
+        observed this exact counterexample RED against the prior,
+        unscoped implementation and GREEN against the current one.
+        """
+        self.inject(
+            self.ANCHOR
+            + " This Doctrine revision is a draft not yet ratified or activated."
+        )
+        result = self.check()
+        self.assert_fails(result, "markers")
+        self.assertIn(
+            "DOCTRINE.md still describes the revision with 'not yet ratified' "
+            "while DC.1 records it as ratified",
+            result.stdout,
+        )
+
+
 class ArchiveProvenanceTests(DistributionTestCase):
     BLOB = "9cf9aa5f188a5351d4c12b53763b4c3c4688ba28efefb57a284a2fcf120e74ab"
     BASELINE = "6e165e585f907baf83a787ba5cc71270a5a4652e"
@@ -1178,7 +1383,7 @@ class PublicFrontDoorTests(unittest.TestCase):
         for chrome in (
                 "actions/workflows/ci.yml/badge.svg",
                 "img.shields.io/github/v/release/HLLMR/writwall",
-                "doctrine-0.8",
+                "doctrine-0.9",
                 "security-policy",
                 'href="#try-it-in-five-minutes">Five-minute start</a>',
                 'href="#how-writwall-differs">How it differs</a>',
@@ -1381,18 +1586,26 @@ class PublicFrontDoorTests(unittest.TestCase):
 
 
 class RatifiedReleaseTests(DistributionTestCase):
-    """Every ratification marker, and the package name, must agree."""
+    """Every ratification marker, and the package name, must agree.
+
+    Expectations are derived from this fixture's own current document
+    control (revision, footer, ratifying record path, effective date)
+    rather than a hardcoded revision string, so they remain meaningful
+    across a future ratified transition instead of silently going stale.
+    """
 
     def test_all_markers_agree(self):
+        control = self.current_control()
         doctrine = (self.repo / "DOCTRINE.md").read_text(encoding="utf-8")
         self.assertIn("| Status | Ratified |", doctrine)
-        row = next(l for l in doctrine.splitlines() if l.startswith("| 0.8 |"))
+        row = next(l for l in doctrine.splitlines()
+                   if l.startswith(f"| {control['revision']} |"))
         self.assertTrue(row.rstrip().endswith("| Yes |"), row)
-        self.assertIn("*Revision 0.8. Ratified 2026-08-21 by DR-005.", doctrine)
+        self.assertIn(control["footer_line"], doctrine)
 
-        record = (self.repo / "decisions" / "DR-005.md").read_text(encoding="utf-8")
+        record = (self.repo / control["ratifying_path"]).read_text(encoding="utf-8")
         self.assertIn("HLLMR", record)
-        self.assertIn("2026-08-21", record)
+        self.assertIn(control["effective_date"], record)
         self.assertNotIn("DRAFT — NO AUTHORITY", record)
 
         for name in ("README.md", "ADOPTING.md"):
@@ -1400,17 +1613,23 @@ class RatifiedReleaseTests(DistributionTestCase):
             self.assertNotIn("ratification candidate", text, name)
 
     def test_builder_produces_the_final_release_name(self):
+        control = self.current_control()
         result = self.build()
         self.assertEqual(result.returncode, 0, result.stderr)
         archives = sorted((self.repo / "dist").glob("*.zip"))
-        self.assertEqual([a.name for a in archives], ["writwall-0.8.zip"])
+        self.assertEqual([a.name for a in archives],
+                         [f"writwall-{control['revision']}.zip"])
 
     def test_final_archive_passes_the_archive_check(self):
+        control = self.current_control()
         self.build()
-        result = self.check("--archive", "dist/writwall-0.8.zip")
+        result = self.check("--archive", f"dist/writwall-{control['revision']}.zip")
         self.assertEqual(result.returncode, 0, result.stdout)
 
     def test_candidate_name_is_refused_once_ratified(self):
+        """Historical fixture: 0.6-rc is a fixed disposable archive name for
+        this negative case, independent of the fixture's actual current
+        revision, so it is deliberately not derived from current_control()."""
         out = self.repo / "dist"
         out.mkdir(exist_ok=True)
         with zipfile.ZipFile(out / "writwall-0.6-rc.zip", "w") as archive:
@@ -1420,11 +1639,13 @@ class RatifiedReleaseTests(DistributionTestCase):
         self.assert_fails(self.check("--archive", "dist/writwall-0.6-rc.zip"), "archive")
 
     def test_candidate_state_still_produces_rc(self):
+        control = self.current_control()
         self.make_candidate()
         result = self.build()
         self.assertEqual(result.returncode, 0, result.stderr)
         archives = sorted((self.repo / "dist").glob("*.zip"))
-        self.assertEqual([a.name for a in archives], ["writwall-0.8-rc.zip"])
+        self.assertEqual([a.name for a in archives],
+                         [f"writwall-{control['revision']}-rc.zip"])
 
 
 def adopt_fixture(repo):
@@ -1933,9 +2154,10 @@ class BuilderTests(DistributionTestCase):
         return archives[0]
 
     def test_candidate_name_while_unratified(self):
+        control = self.current_control()
         self.make_candidate()
         archive = self.build_and_open()
-        self.assertEqual(archive.name, "writwall-0.8-rc.zip")
+        self.assertEqual(archive.name, f"writwall-{control['revision']}-rc.zip")
 
     def test_single_top_level_directory(self):
         archive = self.build_and_open()
@@ -2003,23 +2225,26 @@ class BuilderTests(DistributionTestCase):
         self.assertEqual(result.returncode, 0, result.stdout)
 
     def test_final_release_name_only_when_both_markers_ratified(self):
+        control = self.current_control()
         self.make_candidate()
         self.set_dc1_status("Ratified")
-        self.set_dc2_ratified("Yes")
+        self.set_dc2_ratified("Yes", control["revision"])
         archive = self.build_and_open()
-        self.assertEqual(archive.name, "writwall-0.8.zip")
+        self.assertEqual(archive.name, f"writwall-{control['revision']}.zip")
 
     def test_candidate_name_when_only_dc2_flipped(self):
         # DC.2 says ratified, DC.1 still a candidate: not a release.
+        control = self.current_control()
         self.set_dc1_status("Ratification candidate")
         archive = self.build_and_open()
-        self.assertEqual(archive.name, "writwall-0.8-rc.zip")
+        self.assertEqual(archive.name, f"writwall-{control['revision']}-rc.zip")
 
     def test_candidate_name_when_only_dc1_flipped(self):
         # DC.1 says ratified, DC.2 still pending: not a release.
+        control = self.current_control()
         self.set_dc2_ratified("Pending")
         archive = self.build_and_open()
-        self.assertEqual(archive.name, "writwall-0.8-rc.zip")
+        self.assertEqual(archive.name, f"writwall-{control['revision']}-rc.zip")
 
 
 class ArchiveCheckFailureTests(DistributionTestCase):

@@ -1220,3 +1220,90 @@ Fresh Sonnet CONFORMANCE PASS, no substantive blocker; source-level review
 was independent, test execution was coordinator-attested. The preflight is
 instruction-bound guidance. No full-source suite or public projection was
 part of implementation acceptance; public delivery remains separately gated.
+
+## Post-pilot WO-WW-030 completed record — 2026-09-16
+
+Owner accepted with disclosed deviations and ratified the frozen Doctrine 0.9
+candidate. Active minutes NOT REPORTED. This is not another counted pilot item.
+
+- 9.2.1: one excluded Write canary (339); one genuine non-mutating Read denial
+  (340), caused by coordinator transport of an outside-repository artifact path.
+  No successful forbidden mutation observed; first 338 record bytes preserved.
+- 9.2.2: no numbered RFI created; local defects resolved within approved scope.
+- 9.2.3/9.2.4: five substantive coordinator correction turns and one final
+  two-phrase non-normative cleanup; four independent-review result checkpoints
+  in one distinct Opus session, ending CONFORMANCE PASS. Earlier failures remain
+  preserved. Normalized drift totals NOT MEASURED, not reconstructed.
+- 9.2.5: corpus/orphan counts NOT MEASURED. The continuation identifies three
+  unmapped and three subject-only routed implementation targets for remedy.
+- 9.2.6: 8 declared / 0 wholly enforced / 8 unenforced. Canary evidence is
+  native-session/channel-local; coordinator authority is separate.
+- 9.2.7: Owner reading minutes and mandatory reading total NOT REPORTED.
+- 9.2.8: no qualified empirical instrument. Tabletop scenarios are not runtime
+  or operating-cost evidence. No Phase B tests or release occurred in Phase A.
+
+Final active validation, exact changed-path, whitespace, protected-WO/grant and
+denial-prefix checks passed. Reviewer confidence HIGH on normative integrity and
+resolved findings, with explicitly retained targeted-source coverage limits.
+The separately recorded Owner approval authorizes bounded implementation and
+later delivery, preserving required acceptance milestones and all project bindings.
+
+## Post-pilot WO-WW-031 completed record — 2026-09-17
+
+Owner accepted with disclosed deviations: "Accepted, proceed". Active minutes
+NOT REPORTED; this is not another counted pilot item. Distribution templates,
+bundle, migration guide and generated/human role-coordination instructions now
+implement ratified0.9; the project binding remains0.8, with no adopter migration.
+
+- 9.2.1: one fresh excluded Write canary341 denied before mutation; original340
+  records preserved, target absent, no successful forbidden mutation observed.
+- 9.2.2: no numbered RFI issued; exact routing/gate/resource amendments were
+  separately authorized. No authority gap was silently repaired by Implementer.
+- 9.2.3/9.2.4: author/reviewer corrections and earlier failed gates retained;
+  normalized drift counts NOT MEASURED. Final independent Opus supported
+  acceptance after a report-only authority citation was corrected.
+- 9.2.5: R.16 remedy and exact31-path grant validated; corpus/orphan counts
+  NOT MEASURED. No new general routing enforcement claim.
+- 9.2.6:8 declared/0 wholly enforced/8 unenforced; canary session/channel-local.
+- 9.2.7: Owner reading/active minutes and mandatory-reading total NOT REPORTED.
+- 9.2.8: no empirical operating-cost instrument. An extra action-versus-record
+  approval round trip was observed and called adoption friction by the Owner;
+  this is a process finding, not new product scope or a quantified cost claim.
+
+Final Windows848 total/13 skips/PASS674.606s; native Ubuntu848 total/4 skips/
+PASS752.477s. Both installed/payload gates passed on unchanged frozen input;
+clean source fixture and deliberate guide negatives passed with explicit limits.
+Temporary account/home removed. Live source retained LOG digest mismatch remains
+an explicit postcloseout refresh/regate prerequisite, not a concealed pass.
+No release, public PR, tag or migration occurred within031 implementation.
+
+## Post-pilot WO-WW-032 completed record — 2026-09-17
+
+Owner disposition: "ACCEPT WO-WW-032 including disclosed deviations; active
+minutes: NOT REPORTED; proceed with authorized closeout and v0.12.0 publication."
+This is not another counted pilot item. Version/install references and release
+tests now consistently target0.12.0; canonical Doctrine0.9 remains distinct from
+the operative private0.8 binding. Exactly five permitted retained-reference
+digest fields changed during implementation; no membership or policy change.
+
+- 9.2.1: excluded executing-session Write canary342 denied before mutation;
+  two private Reviewer outside-root Read denials343/344, no successful forbidden
+  mutation. Original341-record prefix preserved. A separate public-candidate
+  Reviewer's unavailable Write request never executed; evidence retained.
+- 9.2.2: no numbered RFI created; exact approved delivery scope unchanged.
+- 9.2.3/9.2.4: initial SELF-HOSTING phrase regression, positive assertion
+  wrapping, verification-helper and recorder heading/encoding failures retained
+  beside corrected passes. Normalized drift/rework counts NOT MEASURED.
+- 9.2.5: full applicable dispatch/prose scan and exact11-path audit passed;
+  corpus/orphan counts NOT MEASURED. Two read-only hash-input labels add no grant.
+- 9.2.6:8 declared/0 wholly enforced/8 unenforced; canary session/channel-local.
+- 9.2.7: Owner active minutes and mandatory-reading total NOT REPORTED.
+- 9.2.8: no empirical operating-cost instrument or adopter migration claim.
+
+Final pre-acceptance Windows848/13 skips/PASS442.394s and native Ubuntu848/4
+skips/PASS338.020s ran sequentially. Installed/payload/archive gates passed on
+both; two actual managed139-file candidates matched, final privacy checks PASS.
+Fresh distinct public-candidate Opus inspected17 paths and returned ACCEPT-READY
+with no blocking findings; execution/hashes were supplied Coordinator evidence.
+No new account or host/system package change. Final postcloseout qualification
+and authorized publication remain subsequent gates, not claimed complete here.

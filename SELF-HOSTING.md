@@ -205,14 +205,17 @@ separate Owner decision. This paragraph records that checkpoint; it does not
 assert the current publication status of the copy being read. External actions
 require their own authority.
 
-Doctrine 0.8 is the current ratified revision (`decisions/DR-005.md`,
-2026-08-21), superseding 0.7. The separate private governed source's self-
+Doctrine 0.9 is the current ratified revision (`decisions/DR-006.md`,
+2026-09-16), superseding 0.8, which was ratified by `decisions/DR-005.md`
+(2026-08-21), superseding 0.7. The separate private governed source's self-
 hosted instance first completed self-adoption bound to revision 0.6, as recorded
 above. Its Owner later ratified and completed the cumulative project-local
 migration under private-source record `governance/decisions/DR-003.md` (not
 carried by public candidates), applying
 `migration-guides/0.6-to-0.7.md` and `migration-guides/0.7-to-0.8.md` in order
-(DC.4). That private governed source is now operatively bound to Doctrine 0.8.
+(DC.4). That private governed source remains operatively bound to Doctrine 0.8.
+The migration to distributed ratified Doctrine 0.9 has not been made and is
+not implied by anything in this document.
 
 ## `filesystem.read.deny` (Level 3), added under WO-PL-012
 

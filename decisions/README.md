@@ -15,9 +15,10 @@ the project's license map on 2026-08-20. It resolves RFI-03.
 `DR-004` ratified Doctrine revision 0.7 on 2026-08-20, superseding 0.6.
 
 `DR-005` ratified Doctrine revision 0.8 on 2026-08-21, superseding 0.7.
-Revision 0.8 is the current ratified methodology revision (`DOCTRINE.md`
-DC.1). Projects already bound to 0.6 or 0.7, including this repository's own
-project-side governance instance bound to 0.6, remain bound to their recorded
+`DR-006` ratified Doctrine revision 0.9 on 2026-09-16, superseding 0.8.
+Revision 0.9 is the current ratified methodology revision (`DOCTRINE.md`
+DC.1). Projects already bound to earlier revisions, including this repository's
+own project-side governance instance bound to 0.8, remain bound to their recorded
 revision until their Owner separately ratifies migration (DC.4); see
 `migration-guides/0.6-to-0.7.md` and `migration-guides/0.7-to-0.8.md`.
 

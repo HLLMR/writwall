@@ -13,7 +13,7 @@ point. Before creating a release tag, run this gate against the final external
 candidate on native Windows and native Ubuntu, naming the exact intended tag:
 
 ```text
-python checks/check_coordinator_release.py <candidate-directory> --expected-tag v0.11.0
+python checks/check_coordinator_release.py <candidate-directory> --expected-tag v0.12.0
 ```
 
 For a future GitHub release that is required to be immutable, save the

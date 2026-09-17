@@ -104,6 +104,27 @@ These are functions, not permanent job titles. One model can perform several
 functions sequentially for a small project, but it does not carry authority
 between them and does not review its own implementation in the same context.
 
+Every reply any of these functions sends you directly opens with a compact
+header: project; the current work order or batch and its plain-language
+purpose; and status (proposed, no active work order, active, blocked, or
+reporting on completion). For an approved batch, the header distinguishes
+overall batch progress from the currently active member, not just the
+active item. Stating this requirement in a prompt or generated packet
+instructs the invoked function to comply; it proves the instruction is
+present, never that a future invocation actually followed it -- that header
+is instruction for replies to you, and it never appears inside a generated
+JSON file, a pasted command, or any other machine-readable artifact. Your
+approval of a roadmap or plan discussion is
+never execution approval for one work order or batch member on its own; the
+General still asks for a fresh approval outside an already-approved batch or
+at a milestone you reserved, and never activates, expands, or invents
+follow-on work once a batch ends. The Reviewer's findings reach you through
+the Architect for delivery only -- never filtered, rewritten, or delayed --
+and you keep standing access to its complete original findings regardless of
+any summary. An Operator halts and files one of three RFI kinds
+(informational, resolvable, or a blocking contradiction) rather than
+improvising through ambiguity.
+
 ## Pick an operating model
 
 ### Small project
@@ -139,13 +160,15 @@ names, repository slugs, domains, logos, or launch copy. The coordinator may
 collect evidence, but the Owner chooses the identity; unavailable sources are
 not clear results.
 
-1. Release `v0.11.0` packages the conversation-first Architect handoff,
-   canonical-root enforcement, corrected lifecycle classification, and the
-   repository-nonmutating `writwall inspect` entry.
+1. Release `v0.12.0` packages the conversation-first Architect handoff,
+   canonical-root enforcement, corrected lifecycle classification, the
+   repository-nonmutating `writwall inspect` entry, and the accepted compact
+   `--brief` continuation and classified `--external-operator-task`
+   operational preflight.
    Install it without unpacking it over your project:
 
    ```text
-   python -m pip install "https://github.com/HLLMR/writwall/archive/refs/tags/v0.11.0.zip"
+   python -m pip install "https://github.com/HLLMR/writwall/archive/refs/tags/v0.12.0.zip"
    ```
 
    Release `v0.9.0` first introduced the coordinator. Release `v0.9.1` corrected
@@ -155,7 +178,9 @@ not clear results.
    conversation-first inception, corrected adoption-state classification,
    and canonical project-root enforcement.
    Release `v0.11.0` adds the installed, read-only `writwall inspect` entry and
-   prospective immutable-release verification.
+   prospective immutable-release verification. Release `v0.12.0` adds the
+   compact `--brief` continuation and classified `--external-operator-task`
+   operational preflight.
    If you are testing an unpublished release candidate, use its checked external
    candidate tree and the release gate in `PUBLICATION.md`.
 2. Run one command:
@@ -211,8 +236,7 @@ not clear results.
    lockout; explicit recovery only for a partial bootstrap. An active work
    order remains routed only to its bounded Operator under `--role auto`.
 
-   **`--brief` (unreleased source work; not part of any published release,
-   including `v0.11.0`).** Adding `--brief` to `inspect` prints an opt-in,
+   **`--brief` (available since `v0.12.0`).** Adding `--brief` to `inspect` prints an opt-in,
    zero-write compact continuation brief instead of the full copy-paste
    prompt: labeled sections (observed evidence, decision/authority
    references, proposals, next permitted step, mandatory evidence, optional
@@ -241,8 +265,7 @@ not clear results.
    replaces the full charter, active work-order grant, and routed
    requirements — the ordinary full handoff remains the default.
 
-   **`--external-operator-task` (unreleased source work; not part of any
-   published release, including `v0.11.0`).** `start` accepts an optional,
+   **`--external-operator-task` (available since `v0.12.0`).** `start` accepts an optional,
    repeatable `--external-operator-task "NAME=classification"`, where `NAME`
    must exactly match one already-named `--external-operator` function and
    `classification` is one of `deployment`, `migration`, `source_freeze`, or
@@ -277,7 +300,8 @@ not clear results.
    the target already holds work, the Architect's opening carries a bounded,
    local, non-secret inventory (Git branch, cleanliness, a few recent commit
    subjects, and top-level project-relative names) and asks whether to
-   explore that work or start elsewhere; if the target is empty, it opens
+   explore that work or start elsewhere; if the target is empty, after the
+   required reporting header (Doctrine 7.12.1) it opens the conversation
    with exactly: "Tell me what you are thinking." Later valid states emit a
    fresh-role prompt without changing target bytes. To use the former full
    questionnaire instead — Owner-time timer, one question at a time, no
@@ -363,7 +387,7 @@ question at a time. Do not begin adoption until I ratify the recovery packet.
 If your coding agent supports skills, the shorter invocation is:
 
 ```text
-Use the writwall-adopt skill. Bootstrap this repository for Doctrine 0.8
+Use the writwall-adopt skill. Bootstrap this repository for Doctrine
 adoption. Baseline commit candidate: determine and propose. Ask one question at
 a time and do not begin product work.
 ```
@@ -490,10 +514,37 @@ Independent provider denial: reports the provider's own denial as the exact bloc
 Environment prerequisite failure: names the exact missing or failed environment prerequisite as the blocker.
 Unapproved task creation or data transmission: never creates or transmits a task, message, or dataset outside the approved action.
 
+Owner approval of a roadmap, plan section, or discussion is not execution approval for any
+individual work order or batch member. A fresh Owner approval is required outside an
+already-approved batch or at a reserved milestone; an approved finite sequence confers no
+release, publish, deploy, push, tag, or external-account authority beyond what each member's own
+grant already authorizes, and a nonapproved successor stops for a fresh Owner decision. Once an
+approved batch's last member is complete, blocked, or exhausted, report results and recommend,
+but never activate, expand, or manufacture, follow-on work. Acceptance of a routine, fully
+conforming batch member stays the Owner's own disposition unless the Owner has separately
+ratified a delegated conforming-completion disposition policy naming a delegate; such closure is
+recorded as disposed under that policy, never described as "the Owner accepted," and rework or
+deviation ratification are never delegable under any policy. Track a handoff between functions
+through its distinguishable state -- prepared, sent, acknowledged, returned, or reviewed -- and
+report a status not actually observed as unknown, never inferred as favorable; preserve a
+human-relayed message together with its provenance, that it was relayed, by whom, and when, and
+never present it as a direct machine-to-machine handoff record. Begin every reply that addresses
+the Owner directly with a one-line header stating the project, the current work order or batch
+and its plain-language purpose, and status -- proposed, no active work order, active, blocked, or
+reporting on completion -- never as a line inside a generated JSON file, a pasted command, or
+another machine-readable or reusable artifact. For an approved batch, distinguish overall batch
+progress from the currently active member. This is instruction only: it proves the requirement
+was generated, never that a future invocation will actually follow it.
+
 Once approved, perform every
-mechanically available authorized step. Do not ask for the same decision again. The human Owner
-alone ratifies intent and activates work; preserve a distinct fresh Reviewer after
-implementation. The onboarding coordinator stops here and does not continue into project work.
+mechanically available authorized step. Do not ask for the same decision again. Whenever you
+delegate a bounded task to a fresh Operator, announce the delegated role and bounded task, name a
+discoverable monitoring location or state plainly that none exists, state the last verified
+execution/handoff state, and name the result/question return route; ending a conversational reply
+must never imply that delegated work keeps running or has stopped when that is not actually
+observed. The human Owner alone ratifies intent and activates work; preserve a distinct fresh Reviewer
+after implementation. The onboarding coordinator stops here and does not continue into
+project work.
 ```
 
 The Authorization section above is filled in by the General itself from
@@ -516,7 +567,13 @@ After you separately approve and activate a work order, start a fresh Implemente
 ```text
 Act as a fresh Implementer for the active work order only. Confirm the active dispatch
 and required live-wall canary before mutation. Execute the order, preserve RED
-and GREEN evidence, write its report, and stop before acceptance or closeout.
+and GREEN evidence, write its report, and stop before acceptance or closeout. Begin
+every reply that addresses the Owner directly with a one-line header naming the
+project, the current work order or batch and its plain-language purpose, and status
+(proposed, no active work order, active, blocked, or reporting on completion); never
+place it inside a generated JSON file, a pasted command, or another machine-readable
+artifact. This is instruction only, proving the requirement was generated, never that
+it will be followed.
 ```
 
 For review, start a fresh session:
@@ -524,7 +581,16 @@ For review, start a fresh session:
 ```text
 Act as a read-only Reviewer. Review the active work order, implementation diff,
 test evidence, and report for conformance and record truth. Do not implement a
-fix. Return ACCEPT or specific findings with severity and evidence.
+fix. Return ACCEPT or specific findings with severity and evidence. Your findings
+are addressed to the Owner and, for delivery only, conveyed through the Architect,
+who may not suppress, rewrite, condition, delay, or waive any finding; the Owner
+retains standing access to your complete original findings, and a finding
+implicating an Architect decision escalates to the Owner directly. Begin every
+reply that addresses the Owner directly with a one-line header naming the project,
+the current work order or batch and its plain-language purpose, and status
+(proposed, no active work order, active, blocked, or reporting on completion);
+never place it inside a generated JSON file, a pasted command, or another
+machine-readable artifact.
 ```
 
 The complete adoption contract, artifact sequence, and provider-specific birth

@@ -27,4 +27,4 @@ D.10 Historical decisions carried forward (6.3.6), each with a note that it
      predates the boundary.
 ```
 
-_Extracted verbatim from DOCTRINE.md rev 0.8. Do not edit here; templates change only when the doctrine does._
+_Extracted verbatim from DOCTRINE.md rev 0.9. Do not edit here; templates change only when the doctrine does._

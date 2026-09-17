@@ -49,6 +49,26 @@ the adopted repository to a fresh General. The General routes bounded
 Operators and fresh Reviewers; new design or design-conformance questions go
 back to a fresh Architect.
 
+Every reply any of these functions addresses to the Owner opens with a
+compact header: project; the current work order or batch and its
+plain-language purpose; and status (Doctrine 7.12.1) -- never inside a
+generated JSON file, pasted command, or other machine-readable artifact
+(7.12.4). Owner approval of a roadmap or plan discussion is never execution
+approval for one work order or batch member by itself (7.10.1); a fresh
+Owner approval is required outside an already-approved batch or at a
+reserved milestone (7.10.4), and the General never activates, expands, or
+manufactures follow-on work once a batch's last member completes (7.10.7).
+A routine, fully conforming batch member's acceptance stays the Owner's
+unless a separately ratified delegated conforming-completion disposition
+policy names a delegate (2.33, 7.10.6); rework and deviation ratification
+are never delegable. The Reviewer's findings reach the Owner through the
+Architect for delivery only -- the Architect may not suppress, rewrite,
+condition, delay, or waive any finding, and the Owner keeps standing access
+to the complete original findings (7.6.4). An Operator files an RFI as one
+of three kinds -- informational, resolvable, or a blocking scope/authority/
+safety contradiction (7.11.1) -- and treats doubtful independence from a
+blocking matter as blocking rather than declaring it unilaterally (7.11.2).
+
 The installed coordinator is the ordinary entry point. Prompt-only use, the
 bundled skill, structured intake, and `init.sh` are execution methods or
 fallbacks inside the same lifecycle. They do not change authority or role
@@ -56,12 +76,14 @@ separation. Make the self-contained adoption bundle and these instructions
 local **before the wall is registered**. A correctly locked session may deny
 the network request that would otherwise retrieve them.
 
-Release `v0.11.0` packages the conversation-first Architect handoff,
-canonical-root enforcement, corrected lifecycle classification, and the
-repository-nonmutating `writwall inspect` entry described below.
+Release `v0.12.0` packages the conversation-first Architect handoff,
+canonical-root enforcement, corrected lifecycle classification, the
+repository-nonmutating `writwall inspect` entry described below, and the
+accepted compact `--brief` continuation and classified
+`--external-operator-task` operational preflight.
 
 ```text
-python -m pip install "https://github.com/HLLMR/writwall/archive/refs/tags/v0.11.0.zip"
+python -m pip install "https://github.com/HLLMR/writwall/archive/refs/tags/v0.12.0.zip"
 
 # Installed command
 writwall start --project-root /path/to/your-project
@@ -88,8 +110,7 @@ creates no project, bootstrap, temporary, profile, privacy-screen, cache, or
 bytecode state. The command still requires an installed Writwall package or a
 local source tree; when neither exists, use section 2's prompt-only fallback.
 
-Adding `--brief` (**unreleased source work; not part of any published
-release, including `v0.11.0`**) replaces that full copy-paste prompt with an
+Adding `--brief` (available since `v0.12.0`) replaces that full copy-paste prompt with an
 opt-in, zero-write compact continuation brief: labeled sections (observed
 evidence, decision/authority references, proposals, next permitted step,
 mandatory evidence, optional references) bounded to 500 whitespace-delimited
@@ -118,8 +139,7 @@ onboarding step, and never replaces the full charter, active work-order
 grant, and routed requirements.
 
 Adding an optional, repeatable `--external-operator-task "NAME=classification"`
-(**unreleased source work; not part of any published release, including
-`v0.11.0`**) to `writwall start` explicitly and instruction-boundly classifies
+(available since `v0.12.0`) to `writwall start` explicitly and instruction-boundly classifies
 one already-named `--external-operator` function as `deployment`, `migration`,
 `source_freeze`, or `cutover`; `NAME` must match that Operator function
 exactly. This is elicitation guidance for the generated packet only, never a
@@ -166,8 +186,8 @@ The idea-first qualification and identity gate are documented in
 |---|---|---|
 | `writwall start` | A new idea or clean project may receive create-only bootstrap bytes | Emits the fresh Architect handoff and makes the complete temporary adoption bundle local |
 | `writwall inspect --role architect` | An existing or workplace repository needs a zero-write first conversation, or an Architect must re-enter later | Prints bounded lifecycle evidence and a fresh Architect prompt without creating any state |
-| `writwall inspect --brief` (unreleased source work; not part of any published release, including `v0.11.0`) | A continuing agent needs a compact, evidence-linked recap instead of the full copy-paste prompt | Prints labeled sections bounded to 500 words of prose, plus an unbounded evidence index of current files with real byte sizes and explicit unknowns; opt-in only, never a replacement for the full charter, active grant, and routed requirements |
-| `writwall start --external-operator-task "NAME=classification"` (unreleased source work; not part of any published release, including `v0.11.0`) | An already-named `--external-operator` function needs a bounded, opt-in operational preflight before deployment/migration/source_freeze/cutover execution | Adds one `## Operational preflight` section and `intake.json["external_operator_tasks"]` entry for that exact Operator only; never inferred from its name, never imposed on ordinary local coding |
+| `writwall inspect --brief` (available since `v0.12.0`) | A continuing agent needs a compact, evidence-linked recap instead of the full copy-paste prompt | Prints labeled sections bounded to 500 words of prose, plus an unbounded evidence index of current files with real byte sizes and explicit unknowns; opt-in only, never a replacement for the full charter, active grant, and routed requirements |
+| `writwall start --external-operator-task "NAME=classification"` (available since `v0.12.0`) | An already-named `--external-operator` function needs a bounded, opt-in operational preflight before deployment/migration/source_freeze/cutover execution | Adds one `## Operational preflight` section and `intake.json["external_operator_tasks"]` entry for that exact Operator only; never inferred from its name, never imposed on ordinary local coding |
 | Prompt-only fallback | The package and source tree are unavailable, or policy permits a model conversation but no local tool | Starts the same Architect function; repository mechanics wait until the bundle is local |
 | Bundled `writwall-adopt` skill | The Owner has promoted the sketch and wants agent-assisted adoption mechanics | Inventories, proposes, and performs only separately ratified recorder actions |
 | `--structured-intake` or `init.sh` | Deterministic intake or expert low-level scaffolding is specifically needed | Preserves compatibility and feeds the fresh Architect; neither creates a second lifecycle nor changes authority |
@@ -369,9 +389,9 @@ It does not fix whose fingers move. Once you have made a decision and ratified i
 
 In the order of Doctrine 6.4.1:
 
-5.1 Confirm the doctrine revision you are binding to is ratified (DC.3.5). Check `DOCTRINE.md` DC.1. Revision 0.8 is current, ratified on 2026-08-21 by `decisions/DR-005.md`, superseding 0.7; a new adoption should bind to 0.8. Revision 0.7 was ratified on 2026-08-20 by `decisions/DR-004.md`; revision 0.6 was ratified on 2026-08-16 by `decisions/DR-001.md` and was the first authoritative revision of the methodology. Both 0.6 and 0.7 remain valid revisions to be bound to by a project that has not migrated. Revisions 0.1 through 0.5 were never ratified and you may not bind to any of them. Always check DC.1 yourself rather than trusting this sentence: DC.1 is the authority, and a revision that looks finished is not the same as one that has been ratified.
+5.1 Confirm the doctrine revision you are binding to is ratified (DC.3.5). Check `DOCTRINE.md` DC.1. Revision 0.9 is current, ratified on 2026-09-16 by `decisions/DR-006.md`, superseding 0.8; a new adoption should bind to 0.9. Revision 0.8 was ratified on 2026-08-21 by `decisions/DR-005.md`; revision 0.7 was ratified on 2026-08-20 by `decisions/DR-004.md`; revision 0.6 was ratified on 2026-08-16 by `decisions/DR-001.md` and was the first authoritative revision of the methodology. Revisions 0.6, 0.7, and 0.8 all remain valid revisions to be bound to by a project that has not migrated. Revisions 0.1 through 0.5 were never ratified and you may not bind to any of them. Always check DC.1 yourself rather than trusting this sentence: DC.1 is the authority, and a revision that looks finished is not the same as one that has been ratified.
 
-Binding to 0.8 means the Appendix B work order you complete in step 5.10 and every one after it follows 0.8's classification rule: every capability surface named under `grant` is classified exactly once, either in `enforced_by` (naming the mechanism that covers the whole surface) or in `unenforced_boundaries` (honored by instruction only). The template's default is `enforced_by: {}` — an empty mapping — with all eight minimum surfaces (`filesystem.write`, `filesystem.read.deny`, `shell.execute`, `network.egress`, `package.install`, `secrets.read`, `git.commit`, `git.push`) listed under `unenforced_boundaries`; move a surface into `enforced_by` only after you have named and validated the mechanism that covers it in full. After completing the frontmatter, run the pre-dispatch validator's `--emit-boundaries --work-order <path>` and replace only the content **between** the existing `<!-- BEGIN GENERATED BOUNDARIES -->` and `<!-- END GENERATED BOUNDARIES -->` marker comments, now under the `## B.7 Generated boundaries` heading (B.4 is BOUNDARIES, unchanged prose; Doctrine DC.2's 0.8 erratum explains the renumbering), with its exact output; then run the ordinary `--work-order <path>` check again, and it must pass before you activate the candidate. A project already bound to 0.6 or 0.7 does not gain any of this automatically: see section 6 and the applicable migration guide (`migration-guides/0.6-to-0.7.md`, `migration-guides/0.7-to-0.8.md`) for the explicit, Owner-ratified migration this requires.
+Binding to 0.9 (Appendix B carries no content change from 0.8) means the Appendix B work order you complete in step 5.10 and every one after it follows this classification rule: every capability surface named under `grant` is classified exactly once, either in `enforced_by` (naming the mechanism that covers the whole surface) or in `unenforced_boundaries` (honored by instruction only). The template's default is `enforced_by: {}` — an empty mapping — with all eight minimum surfaces (`filesystem.write`, `filesystem.read.deny`, `shell.execute`, `network.egress`, `package.install`, `secrets.read`, `git.commit`, `git.push`) listed under `unenforced_boundaries`; move a surface into `enforced_by` only after you have named and validated the mechanism that covers it in full. After completing the frontmatter, run the pre-dispatch validator's `--emit-boundaries --work-order <path>` and replace only the content **between** the existing `<!-- BEGIN GENERATED BOUNDARIES -->` and `<!-- END GENERATED BOUNDARIES -->` marker comments, now under the `## B.7 Generated boundaries` heading (B.4 is BOUNDARIES, unchanged prose; Doctrine DC.2's 0.8 erratum explains the renumbering), with its exact output; then run the ordinary `--work-order <path>` check again, and it must pass before you activate the candidate. A project already bound to 0.6, 0.7, or 0.8 does not gain any of this automatically: see section 6 and the applicable migration guide (`migration-guides/0.6-to-0.7.md`, `migration-guides/0.7-to-0.8.md`, `migration-guides/0.8-to-0.9.md`) for the explicit, Owner-ratified migration this requires.
 
 The validator also checks repository-looking paths in B.3 and B.4 against the
 machine-readable grant. A path that is mentioned for a read-only or
@@ -456,10 +476,37 @@ Independent provider denial: reports the provider's own denial as the exact bloc
 Environment prerequisite failure: names the exact missing or failed environment prerequisite as the blocker.
 Unapproved task creation or data transmission: never creates or transmits a task, message, or dataset outside the approved action.
 
+Owner approval of a roadmap, plan section, or discussion is not execution approval for any
+individual work order or batch member. A fresh Owner approval is required outside an
+already-approved batch or at a reserved milestone; an approved finite sequence confers no
+release, publish, deploy, push, tag, or external-account authority beyond what each member's own
+grant already authorizes, and a nonapproved successor stops for a fresh Owner decision. Once an
+approved batch's last member is complete, blocked, or exhausted, report results and recommend,
+but never activate, expand, or manufacture, follow-on work. Acceptance of a routine, fully
+conforming batch member stays the Owner's own disposition unless the Owner has separately
+ratified a delegated conforming-completion disposition policy naming a delegate; such closure is
+recorded as disposed under that policy, never described as "the Owner accepted," and rework or
+deviation ratification are never delegable under any policy. Track a handoff between functions
+through its distinguishable state -- prepared, sent, acknowledged, returned, or reviewed -- and
+report a status not actually observed as unknown, never inferred as favorable; preserve a
+human-relayed message together with its provenance, that it was relayed, by whom, and when, and
+never present it as a direct machine-to-machine handoff record. Begin every reply that addresses
+the Owner directly with a one-line header stating the project, the current work order or batch
+and its plain-language purpose, and status -- proposed, no active work order, active, blocked, or
+reporting on completion -- never as a line inside a generated JSON file, a pasted command, or
+another machine-readable or reusable artifact. For an approved batch, distinguish overall batch
+progress from the currently active member. This is instruction only: it proves the requirement
+was generated, never that a future invocation will actually follow it.
+
 Once approved, perform every
-mechanically available authorized step. Do not ask for the same decision again. The human Owner
-alone ratifies intent and activates work; preserve a distinct fresh Reviewer after
-implementation. The onboarding coordinator stops here and does not continue into project work.
+mechanically available authorized step. Do not ask for the same decision again. Whenever you
+delegate a bounded task to a fresh Operator, announce the delegated role and bounded task, name a
+discoverable monitoring location or state plainly that none exists, state the last verified
+execution/handoff state, and name the result/question return route; ending a conversational reply
+must never imply that delegated work keeps running or has stopped when that is not actually
+observed. The human Owner alone ratifies intent and activates work; preserve a distinct fresh Reviewer
+after implementation. The onboarding coordinator stops here and does not continue into
+project work.
 ```
 
 The Authorization section above is filled in by the General itself from
@@ -488,7 +535,7 @@ or recorder run activates or implements that work.
 
 ## 6. Migrating between doctrine revisions
 
-Nothing happens automatically (DC.4). When you decide to move a project from one ratified revision to another: read the DC.2 rows between them; list every local artifact the differences touch (charter structure, work-order frontmatter, adapter, brief format, routing rules); update them; write a decision record naming both revisions and the affected artifacts; commit. Where a `migration-guides/<from>-to-<to>.md` exists, follow it; it is the companion document for that specific transition, in the same spirit as the 0.1-to-0.6 remediation companion that produced this section. A project bound to 0.6 that wants to move to 0.7 follows `migration-guides/0.6-to-0.7.md` explicitly; a project bound to 0.7 that wants to move to the current 0.8 revision follows `migration-guides/0.7-to-0.8.md` explicitly. No script, adapter, skill, or agent invocation performs any migration on its own initiative, and a project remains correctly bound to its recorded revision until its Owner ratifies otherwise.
+Nothing happens automatically (DC.4). When you decide to move a project from one ratified revision to another: read the DC.2 rows between them; list every local artifact the differences touch (charter structure, work-order frontmatter, adapter, brief format, routing rules); update them; write a decision record naming both revisions and the affected artifacts; commit. Where a `migration-guides/<from>-to-<to>.md` exists, follow it; it is the companion document for that specific transition, in the same spirit as the 0.1-to-0.6 remediation companion that produced this section. A project bound to 0.6 that wants to move to 0.7 follows `migration-guides/0.6-to-0.7.md` explicitly; a project bound to 0.7 that wants to move to 0.8 follows `migration-guides/0.7-to-0.8.md` explicitly; a project bound to 0.8 that wants to move to the current 0.9 revision follows `migration-guides/0.8-to-0.9.md` explicitly. No script, adapter, skill, or agent invocation performs any migration on its own initiative, and a project remains correctly bound to its recorded revision until its Owner ratifies otherwise.
 
 ## 7. Public-source boundary
 

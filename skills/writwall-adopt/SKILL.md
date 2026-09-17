@@ -20,7 +20,7 @@ replacement or register the wall before its recovery instructions are readable.
 
 For a compact, bounded re-entry recap instead of the full copy-paste prompt,
 a continuing agent may use `writwall inspect --project-root <repo> --brief`
-(**unreleased source work; not part of any published release**). It is
+(available since `v0.12.0`). It is
 opt-in, zero-write, bounded to 500 words of prose plus an unbounded evidence
 index of current files and explicit unknowns, and it never replaces this
 bundle's own instructions, the charter, or the ratified adoption record —
@@ -31,8 +31,8 @@ credentials remain outside them, and infrastructure, DNS, and mail Operators
 remain outside the repository wall unless they edit repository bytes.
 
 The day-zero command's optional, repeatable
-`--external-operator-task "NAME=classification"` flag (**unreleased source
-work; not part of any published release**) explicitly and instruction-boundly
+`--external-operator-task "NAME=classification"` flag (available since
+`v0.12.0`) explicitly and instruction-boundly
 classifies one already-named `--external-operator` function as `deployment`,
 `migration`, `source_freeze`, or `cutover`; `NAME` must match that function
 exactly, and a malformed pair, an unmatched name, an unsupported
@@ -116,7 +116,9 @@ writwall-adopt/
 │   ├── DOCTRINE.md                        the methodology, for you, for this task only
 │   └── migration-guides/                  followed only in migration mode
 │       ├── 0.1-to-0.6.md
-│       └── 0.6-to-0.7.md
+│       ├── 0.6-to-0.7.md
+│       ├── 0.7-to-0.8.md
+│       └── 0.8-to-0.9.md
 └── assets/
     ├── adapters/claude-code/
     │   ├── README.md                      what the wall does and does not enforce
@@ -290,7 +292,22 @@ General, then stop. Do not continue as General, create
 or dispatch a user-owned task, activate a work order, or begin product work in
 the onboarding context. The fresh General may request task creation and
 dispatch only by including them explicitly in its single combined approval
-request.
+request. That General's mandate is finite even after approval: roadmap or
+plan approval is never execution approval for one work order or batch member
+on its own (Doctrine 7.10.1); a fresh Owner approval is required outside an
+already-approved batch or at a reserved milestone (7.10.4); and once a
+batch's last member completes, blocks, or is exhausted, the General reports
+and may recommend, but never activates, expands, or manufactures, follow-on
+work (7.10.7). A routine, fully conforming batch member's acceptance stays
+the Owner's own disposition unless a separately ratified delegated
+conforming-completion policy names a delegate (2.33, 7.10.6); rework and
+deviation ratification are never delegable. Every reply addressed to the
+Owner opens with a compact header naming the project, work order or batch,
+and status (7.12.1) -- never inside a generated JSON file or other
+machine-readable artifact (7.12.4). The Reviewer's findings reach the Owner
+through the Architect for delivery only, never filtered, rewritten, or
+delayed, and the Owner keeps standing access to the complete original
+findings (7.6.4).
 
 ```text
 Act as a fresh General for this already-adopted project's continuity. Begin
@@ -333,10 +350,37 @@ Independent provider denial: reports the provider's own denial as the exact bloc
 Environment prerequisite failure: names the exact missing or failed environment prerequisite as the blocker.
 Unapproved task creation or data transmission: never creates or transmits a task, message, or dataset outside the approved action.
 
+Owner approval of a roadmap, plan section, or discussion is not execution approval for any
+individual work order or batch member. A fresh Owner approval is required outside an
+already-approved batch or at a reserved milestone; an approved finite sequence confers no
+release, publish, deploy, push, tag, or external-account authority beyond what each member's own
+grant already authorizes, and a nonapproved successor stops for a fresh Owner decision. Once an
+approved batch's last member is complete, blocked, or exhausted, report results and recommend,
+but never activate, expand, or manufacture, follow-on work. Acceptance of a routine, fully
+conforming batch member stays the Owner's own disposition unless the Owner has separately
+ratified a delegated conforming-completion disposition policy naming a delegate; such closure is
+recorded as disposed under that policy, never described as "the Owner accepted," and rework or
+deviation ratification are never delegable under any policy. Track a handoff between functions
+through its distinguishable state -- prepared, sent, acknowledged, returned, or reviewed -- and
+report a status not actually observed as unknown, never inferred as favorable; preserve a
+human-relayed message together with its provenance, that it was relayed, by whom, and when, and
+never present it as a direct machine-to-machine handoff record. Begin every reply that addresses
+the Owner directly with a one-line header stating the project, the current work order or batch
+and its plain-language purpose, and status -- proposed, no active work order, active, blocked, or
+reporting on completion -- never as a line inside a generated JSON file, a pasted command, or
+another machine-readable or reusable artifact. For an approved batch, distinguish overall batch
+progress from the currently active member. This is instruction only: it proves the requirement
+was generated, never that a future invocation will actually follow it.
+
 Once approved, perform every
-mechanically available authorized step. Do not ask for the same decision again. The human Owner
-alone ratifies intent and activates work; preserve a distinct fresh Reviewer after
-implementation. The onboarding coordinator stops here and does not continue into project work.
+mechanically available authorized step. Do not ask for the same decision again. Whenever you
+delegate a bounded task to a fresh Operator, announce the delegated role and bounded task, name a
+discoverable monitoring location or state plainly that none exists, state the last verified
+execution/handoff state, and name the result/question return route; ending a conversational reply
+must never imply that delegated work keeps running or has stopped when that is not actually
+observed. The human Owner alone ratifies intent and activates work; preserve a distinct fresh Reviewer
+after implementation. The onboarding coordinator stops here and does not continue into
+project work.
 ```
 
 The Authorization section above is filled in by the General itself from
@@ -347,4 +391,4 @@ a performance claim.
 
 ## Migration mode
 
-If the Owner states the repository was bootstrapped under an earlier doctrine revision, look for `references/migration-guides/<from>-to-<to>.md` in this bundle and follow it instead of treating prior artifacts as unknowns. This bundle ships the 0.1-to-0.6 and 0.6-to-0.7 guides. Each requires the project's Owner to explicitly ratify migration before it is followed; neither runs on your own initiative. If no guide for the stated transition is bundled, say so, treat prior artifacts as Phase A inventory items, and propose dispositions; do not guess at what the earlier revision meant.
+If the Owner states the repository was bootstrapped under an earlier doctrine revision, look for `references/migration-guides/<from>-to-<to>.md` in this bundle and follow it instead of treating prior artifacts as unknowns. This bundle ships the 0.1-to-0.6, 0.6-to-0.7, 0.7-to-0.8, and 0.8-to-0.9 guides. Each requires the project's Owner to explicitly ratify migration before it is followed; none runs on your own initiative. If no guide for the stated transition is bundled, say so, treat prior artifacts as Phase A inventory items, and propose dispositions; do not guess at what the earlier revision meant.
