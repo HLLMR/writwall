@@ -22,6 +22,12 @@ The installed entry point and standalone script accept the same arguments.
 In the examples below, set the three paths yourself once; the plan and backup
 directory must be outside the target project. Use a durable local backup
 location, not temporary storage that may be cleared automatically.
+Use physical paths: symlink or junction aliases are refused, including macOS
+`/var` and `/tmp` aliases. Their physical locations normally start with
+`/private/var` and `/private/tmp`. Links inside the selected project remain
+refused as well; do not resolve a linked project file to bypass that check.
+On macOS/Linux, run `pwd -P` in the intended directory to obtain its physical
+path before supplying it to the tool.
 Plans and backups can contain private project configuration; keep them local
 and do not attach them to a public issue or release.
 

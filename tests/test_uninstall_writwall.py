@@ -21,7 +21,7 @@ class RecoveryTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.base = Path(self.temp.name)
+        self.base = Path(self.temp.name).resolve()
         self.root = self.base / 'project'
         self.root.mkdir()
         (self.root / '.git').write_text('gitdir: elsewhere')
@@ -126,6 +126,19 @@ class RecoveryTests(unittest.TestCase):
             self.skipTest('hardlinks unavailable')
         with self.assertRaises(uninstall.RecoveryError):
             uninstall.preview(self.root)
+
+    def test_descendant_symlink_target_rejected(self):
+        real = self.base / 'real-settings.json'
+        real.write_bytes(self.settings.read_bytes())
+        self.settings.unlink()
+        try:
+            self.settings.symlink_to(real)
+        except OSError:
+            self.skipTest('symlink creation unavailable')
+        before = real.read_bytes()
+        with self.assertRaises(uninstall.RecoveryError):
+            uninstall.preview(self.root)
+        self.assertEqual(real.read_bytes(), before)
 
     def test_active_order_does_not_control_emergency_exit(self):
         (self.root / '.claude/active-wo.txt').write_text('../../malformed')
