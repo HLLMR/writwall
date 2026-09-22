@@ -503,7 +503,11 @@ def _bounded_frontmatter_status(path: Path) -> str | None:
     requests) and reads exactly one raw byte at a time, assembling only
     complete header lines. It stops issuing further reads the instant the
     closing delimiter line's own trailing newline has been consumed -- no
-    chunked read-ahead, and never a byte beyond that boundary is requested. A
+    chunked read-ahead, and never a byte beyond that boundary is requested.
+    Both budgets are checked *before* each single-byte request, so the byte
+    after the byte cap and the first byte of the line after the line cap are
+    never read at all; a header whose closing delimiter falls exactly on
+    either cap still parses normally. A
     header exceeding the byte or line bound, one missing a closing delimiter
     within that bound, or one whose collected bytes are not valid frontmatter
     text is explicit malformed metadata -- never a silent guess and never a
@@ -515,39 +519,43 @@ def _bounded_frontmatter_status(path: Path) -> str | None:
     lines: list[bytes] = []
     current_line = bytearray()
     total_bytes = 0
+    lines_read = 0
     closing_found = False
     try:
         with path.open("rb", buffering=0) as handle:
-            while True:
-                byte = handle.read(1)
-                if not byte:
-                    break
-                total_bytes += 1
-                if total_bytes > _MAX_FRONTMATTER_BYTES:
+            while not closing_found:
+                # Both budgets are enforced before the next single-byte
+                # request, never after consuming the byte that breaches them.
+                if lines_read >= _MAX_FRONTMATTER_LINES:
+                    raise CoordinatorError(
+                        "cannot read historical work-order record: frontmatter "
+                        f"exceeds the {_MAX_FRONTMATTER_LINES}-line bound"
+                    )
+                if total_bytes >= _MAX_FRONTMATTER_BYTES:
                     raise CoordinatorError(
                         "cannot read historical work-order record: frontmatter "
                         f"exceeds the {_MAX_FRONTMATTER_BYTES}-byte bound"
                     )
+                byte = handle.read(1)
+                if not byte:
+                    break
+                total_bytes += 1
                 if byte != b"\n":
                     current_line += byte
                     continue
                 line = bytes(current_line)
                 current_line = bytearray()
-                if not lines:
+                lines_read += 1
+                if lines_read == 1:
                     if line.startswith(_UTF8_BOM):
                         line = line[len(_UTF8_BOM):]
                     if line.rstrip(b"\r") != b"---":
                         return None
                     lines.append(b"---")
                     continue
-                if len(lines) > _MAX_FRONTMATTER_LINES:
-                    raise CoordinatorError(
-                        "cannot read historical work-order record: frontmatter "
-                        f"exceeds the {_MAX_FRONTMATTER_LINES}-line bound"
-                    )
                 if line.rstrip(b"\r") == b"---":
                     closing_found = True
-                    break
+                    continue
                 lines.append(line.rstrip(b"\r"))
     except OSError as exc:
         raise CoordinatorError(f"cannot read historical work-order record: {exc}") from exc
@@ -710,6 +718,7 @@ def classify_project(project: Path) -> ObservedState:
     )
     history = governance / "history"
     closed_records = []
+    indeterminate_history = 0
     if _entry_exists(history):
         resolved_history = _safe_project_path(project, history, "history directory")
         if not resolved_history.is_dir():
@@ -720,7 +729,20 @@ def classify_project(project: Path) -> ObservedState:
                 raise CoordinatorError(
                     "inconsistent state: historical work-order record is not a file"
                 )
-            if _bounded_frontmatter_status(safe_path) in {"CLOSED", "COMPLETE"}:
+            # Closed-history status only refines the retired/adopted lockout
+            # label; it is never adoption authority and never current
+            # authority. A record whose bounded metadata cannot be read is
+            # therefore unavailable optional evidence, reported as an
+            # aggregate count, not a contradiction that stops entry. This
+            # catch is scoped to the bounded metadata read alone: the
+            # containment, link-safety, and regular-file checks above still
+            # fail closed, and neither bound is relaxed.
+            try:
+                status = _bounded_frontmatter_status(safe_path)
+            except CoordinatorError:
+                indeterminate_history += 1
+                continue
+            if status in {"CLOSED", "COMPLETE"}:
                 closed_records.append(safe_path)
 
     resolved_adoption_paths = []
@@ -781,6 +803,17 @@ def classify_project(project: Path) -> ObservedState:
             )
     adopted = bool(ratified_evidence)
 
+    # An aggregate count only: never a historical pathname, header byte, body
+    # byte, or per-record reason text.
+    history_limitation = (
+        (
+            "historical work-order metadata was unreadable or out of bounds "
+            f"for {indeterminate_history} record(s); closed-history evidence "
+            "is incomplete",
+        )
+        if indeterminate_history else ()
+    )
+
     if all(path.is_file() for path in core) and adopted and closed_records:
         reject_bootstrap_conflict("retired lockout")
         return ObservedState(
@@ -790,6 +823,7 @@ def classify_project(project: Path) -> ObservedState:
                 "Plan, State, and Routing exist",
                 f"ratified adoption evidence observed: {ratified_evidence[0].relative}",
                 f"{len(closed_records)} closed work-order record(s) observed in history",
+                *history_limitation,
             ),
         )
     if all(path.is_file() for path in core) and adopted:
@@ -800,6 +834,7 @@ def classify_project(project: Path) -> ObservedState:
                 "activation pointer is absent",
                 "Plan, State, Routing, and ratified adoption evidence exist: "
                 f"{ratified_evidence[0].relative}",
+                *history_limitation,
             ),
         )
 
@@ -1577,6 +1612,21 @@ def _lockout_aggregate_history_line(state: ObservedState) -> str | None:
     return None
 
 
+_HISTORY_LIMITATION_MARKER = "closed-history evidence is incomplete"
+
+
+def _lockout_history_limitation_line(state: ObservedState) -> str | None:
+    """The classifier's own aggregate unreadable-history count, if any.
+
+    Deliberately keyed on a marker distinct from the closed-record count
+    line, so the two aggregate statements never shadow one another.
+    """
+    for item in state.evidence:
+        if _HISTORY_LIMITATION_MARKER in item:
+            return item
+    return None
+
+
 def _render_lockout_brief(
     project: Path, state: ObservedState, selected_role: str
 ) -> str:
@@ -1616,6 +1666,16 @@ def _render_lockout_brief(
         "body is read or indexed by this brief)."
         if history_line else ""
     )
+    limitation_line = _lockout_history_limitation_line(state)
+    limitation_evidence_line = (
+        f"- {limitation_line} (the classifier's already-computed aggregate; "
+        "this brief performs no additional history read and indexes no "
+        "historical pathname, header, body, or reason text)."
+        if limitation_line else ""
+    )
+    history_evidence_block = "\n".join(
+        line for line in (history_evidence_line, limitation_evidence_line) if line
+    )
 
     is_architect = selected_role == "Fresh Architect"
     next_step = (
@@ -1639,7 +1699,7 @@ Prose word budget: 500 words maximum; the evidence index excluded below is not c
 - Canonical project root: {project.as_posix()}
 - Observed lifecycle state: {state.name}
 - Selected role: {selected_role}
-{history_evidence_line}
+{history_evidence_block}
 
 ## Decision and authority references
 

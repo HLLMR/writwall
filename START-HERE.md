@@ -1,3 +1,5 @@
+> **Final recovery release: v0.13.0.** New adoption is discouraged. Existing users can leave Writwall without a work order or Doctrine migration. See [emergency uninstall](docs/uninstall.md) and [what failed](docs/recovery-postmortem.md). The earlier adoption guidance below is retained for reference.
+
 # Start here: the human operating guide
 
 You do not need to understand the Doctrine before beginning. You need to know
@@ -168,7 +170,7 @@ not clear results.
    Install it without unpacking it over your project:
 
    ```text
-   python -m pip install "https://github.com/HLLMR/writwall/archive/refs/tags/v0.12.0.zip"
+   python -m pip install "https://github.com/HLLMR/writwall/archive/refs/tags/v0.13.0.zip"
    ```
 
    Release `v0.9.0` first introduced the coordinator. Release `v0.9.1` corrected

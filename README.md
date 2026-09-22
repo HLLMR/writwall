@@ -1,3 +1,5 @@
+> **Final recovery release: v0.13.0.** New adoption is discouraged. Existing users can leave Writwall without a work order or Doctrine migration. See [emergency uninstall](docs/uninstall.md) and [what failed](docs/recovery-postmortem.md). The earlier adoption guidance below is retained for reference.
+
 <p align="center">
   <img src="docs/assets/writwall-readme-banner-0a5259d8.png" alt="Writwall: document-governed AI work with scoped grants, denial evidence, and human acceptance." width="720">
 </p>
@@ -97,7 +99,7 @@ actually blocks the current session before real work begins.
 Release `v0.12.0` has one canonical lifecycle and two ordinary entry commands:
 
 ```text
-python -m pip install "https://github.com/HLLMR/writwall/archive/refs/tags/v0.12.0.zip"
+python -m pip install "https://github.com/HLLMR/writwall/archive/refs/tags/v0.13.0.zip"
 
 # New idea or clean project: create a temporary local handoff
 writwall start --project-root /path/to/your-project

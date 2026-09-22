@@ -30,6 +30,7 @@ REQUIRED_CANDIDATE_PATHS = (
     "writwall_cli/coordinator.py",
     "scripts/start_writwall.py",
     "scripts/privacy_screen.py",
+    "scripts/uninstall_writwall.py",
     "skills/writwall-adopt/SKILL.md",
 )
 REQUIRED_HANDOFF_PATHS = (
@@ -184,6 +185,30 @@ Draft reasoning.
 
 Draft rejected alternatives.
 """
+
+# WO-WW-033: a synthetic historical record whose frontmatter exceeds the
+# coordinator's ratified metadata bounds. Closed-history status is optional
+# label-refinement evidence, never adoption or current authority, so an
+# unreadable header must not block supported read-only re-entry. The padding
+# length is deliberately independent of the coordinator's private constant:
+# this gate measures an external candidate's real installed behavior. Entirely
+# synthetic; no private or real historical bytes are copied.
+OVERSIZED_HISTORY_RECORD_NAME = "WO-SYNTHETIC-OVERSIZED.md"
+OVERSIZED_HISTORY_HEADER_SENTINEL = "SYNTHETIC-HISTORY-HEADER-SENTINEL"
+OVERSIZED_HISTORY_BODY_SENTINEL = "SYNTHETIC-HISTORY-BODY-SENTINEL"
+OVERSIZED_HISTORY_RECORD = (
+    "---\nid: WO-SYNTHETIC-OVERSIZED\n"
+    f"note: {OVERSIZED_HISTORY_HEADER_SENTINEL}\n"
+    "padding: " + "x" * 9000 + "\n"
+    "status: CLOSED\n---\n"
+    f"{OVERSIZED_HISTORY_BODY_SENTINEL} synthetic body content\n"
+)
+# Kept equivalent to the aggregate limitation line emitted by
+# scripts/start_writwall.py's classifier for exactly one unreadable record.
+INCOMPLETE_HISTORY_EVIDENCE = (
+    "historical work-order metadata was unreadable or out of bounds "
+    "for 1 record(s); closed-history evidence is incomplete"
+)
 
 UNRELATED_RATIFIED_DECISION = """# DR-001: Naming decision
 
@@ -439,6 +464,46 @@ def verify_operational_preflight_absent(text: str, surface: str) -> None:
         )
 
 
+def check_installed_uninstall(command, candidate, workspace, environment):
+    """Exercise emergency exit through the installed command outside its target."""
+    project = workspace / "broken-adopter"
+    hooks = project / ".claude" / "hooks"
+    hooks.mkdir(parents=True)
+    shutil.copyfile(candidate / "skills/writwall-adopt/assets/adapters/claude-code/wo_capability_wall.py",
+                    hooks / "wo_capability_wall.py")
+    settings = project / ".claude" / "settings.json"
+    settings.write_text(json.dumps({"permissions": {"deny": ["Read(.env)"]},
+        "hooks": {"PreToolUse": [{"matcher": "*", "hooks": [
+            {"type": "command", "command": 'python3 "${CLAUDE_PROJECT_DIR}/.claude/hooks/wo_capability_wall.py"'},
+            {"type": "command", "command": "echo host-audit"}]}]}}), encoding="utf-8")
+    (project / ".claude" / "active-wo.txt").write_text("../../missing\n", encoding="utf-8")
+    (project / ".git").write_text("gitdir: ../owner-worktree\n", encoding="utf-8")
+    (project / "app.txt").write_bytes(b"uncommitted host application\n")
+    original = tree_digest(project)
+    preview = run([str(command), "uninstall", "--project-root", str(project)],
+        cwd=workspace, environment=environment, label="installed uninstall preview")
+    json.loads(preview.stdout)
+    if tree_digest(project) != original:
+        raise ReleaseCheckError("uninstall preview changed target bytes")
+    plan = workspace / "exit-plan.json"
+    plan.write_text(preview.stdout, encoding="utf-8")
+    backup = workspace / "exit-backup"
+    applied = run([str(command), "uninstall", "--project-root", str(project), "--apply",
+         "--plan", str(plan), "--backup-root", str(backup)], cwd=workspace,
+        environment=environment, label="installed uninstall apply")
+    after = json.loads(settings.read_text(encoding="utf-8"))
+    if (after.get("permissions") != {"deny": ["Read(.env)"]}
+            or "echo host-audit" not in settings.read_text(encoding="utf-8")
+            or "wo_capability_wall.py" in settings.read_text(encoding="utf-8")
+            or (project / "app.txt").read_bytes() != b"uncommitted host application\n"):
+        raise ReleaseCheckError("uninstall failed surgical settings preservation")
+    journal = json.loads(applied.stdout)["journal"]
+    run([str(command), "uninstall", "--restore", journal],
+        cwd=workspace, environment=environment, label="installed uninstall restore")
+    if tree_digest(project) != original:
+        raise ReleaseCheckError("uninstall restore did not reproduce original target bytes")
+
+
 def check_candidate(candidate: Path, expected_tag: str) -> None:
     candidate = candidate.resolve()
     if not candidate.is_dir():
@@ -531,6 +596,7 @@ def check_candidate(candidate: Path, expected_tag: str) -> None:
         )
         if "inspect" not in root_help.stdout:
             raise ReleaseCheckError("installed help omitted the inspect command")
+        check_installed_uninstall(command, candidate, workspace, environment)
 
         if (candidate / "PROJECTION-PROVENANCE.md").is_file():
             for verb in ("inspect", "start"):
@@ -949,6 +1015,128 @@ def check_candidate(candidate: Path, expected_tag: str) -> None:
                 "installed retired-lockout route changed target bytes"
             )
 
+        # WO-WW-033: a supported ratified project carrying one oversized
+        # synthetic history header must still produce meaningful read-only
+        # Architect re-entry on the real installed command, state the
+        # limitation as an aggregate count, and disclose no historical
+        # pathname, header, or body. Byte-level read-boundary behavior is
+        # covered by source tests; this gate measures installed output and
+        # zero-mutation only, and claims no raw-I/O instrumentation.
+        unreadable_history = workspace / "unreadable-history-project"
+        unreadable_governance = unreadable_history / "governance"
+        unreadable_decisions = unreadable_governance / "decisions"
+        unreadable_decisions.mkdir(parents=True)
+        (unreadable_history / "CLAUDE.md").write_text(
+            "# Charter\n\nA.1 Prohibitions apply.\n", encoding="utf-8", newline="\n"
+        )
+        for name in ("PLAN.md", "STATE.md", "ROUTING.md"):
+            (unreadable_governance / name).write_text(
+                f"# {name}\n", encoding="utf-8", newline="\n"
+            )
+        (unreadable_decisions / "DR-001.md").write_text(
+            RATIFIED_ADOPTION_RECORD, encoding="utf-8", newline="\n"
+        )
+        unreadable_history_dir = unreadable_governance / "history"
+        unreadable_history_dir.mkdir()
+        (unreadable_history_dir / "WO-001.md").write_text(
+            "---\nid: WO-001\nstatus: CLOSED\n---\n", encoding="utf-8", newline="\n"
+        )
+        (unreadable_history_dir / OVERSIZED_HISTORY_RECORD_NAME).write_text(
+            OVERSIZED_HISTORY_RECORD, encoding="utf-8", newline="\n"
+        )
+        # A named temporary scope, created and populated by this harness only,
+        # with TMP/TEMP/TMPDIR redirected to it for these two inspections
+        # alone. The comparison below is a before/after digest snapshot of that
+        # scope: it proves no residue was left behind, not that no syscall
+        # occurred. It is not syscall interception and makes no claim about a
+        # transient file created and removed within a single run.
+        inspection_temp = workspace / "inspection-temp"
+        inspection_temp.mkdir()
+        (inspection_temp / "harness-fixture.txt").write_text(
+            "Harness-created fixture. The inspector must leave this scope "
+            "unchanged.\n",
+            encoding="utf-8", newline="\n",
+        )
+        inspection_environment = dict(environment)
+        inspection_environment.update({
+            "TMP": str(inspection_temp),
+            "TEMP": str(inspection_temp),
+            "TMPDIR": str(inspection_temp),
+        })
+        inspection_temp_before = tree_digest(inspection_temp)
+        unreadable_before = tree_digest(unreadable_history)
+        unreadable_profile_before = profile_state_snapshot(state)
+        for surface, extra in (("full", ()), ("brief", ("--brief",))):
+            unreadable_result = run(
+                [
+                    str(command), "inspect",
+                    "--project-root", str(unreadable_history),
+                    "--role", "architect", *extra,
+                ],
+                cwd=workspace, environment=inspection_environment,
+                label=f"installed unreadable-history inspect ({surface})",
+                closed_stdin=True,
+            )
+            unreadable_stdout = unreadable_result.stdout
+            missing_unreadable_text = [
+                text for text in (
+                    "Observed lifecycle state: retired_lockout",
+                    "Selected role: Fresh Architect",
+                    INCOMPLETE_HISTORY_EVIDENCE,
+                    "1 closed work-order record",
+                ) if text not in unreadable_stdout
+            ]
+            if missing_unreadable_text:
+                raise ReleaseCheckError(
+                    f"installed unreadable-history inspect ({surface}) omitted: "
+                    + ", ".join(missing_unreadable_text)
+                )
+            if surface == "brief":
+                verify_installed_brief_contract(
+                    unreadable_stdout, "unreadable history"
+                )
+            elif "Begin read-only" not in unreadable_stdout:
+                raise ReleaseCheckError(
+                    "installed unreadable-history inspect (full) omitted a "
+                    "meaningful Fresh Architect handoff"
+                )
+            disclosed = [
+                item for item in (
+                    OVERSIZED_HISTORY_RECORD_NAME,
+                    OVERSIZED_HISTORY_HEADER_SENTINEL,
+                    OVERSIZED_HISTORY_BODY_SENTINEL,
+                    "governance/history",
+                ) if item in unreadable_stdout
+            ]
+            if disclosed:
+                raise ReleaseCheckError(
+                    f"installed unreadable-history inspect ({surface}) disclosed "
+                    "historical material: " + ", ".join(disclosed)
+                )
+        if (unreadable_history / ".writwall-bootstrap").exists():
+            raise ReleaseCheckError(
+                "installed unreadable-history inspect created a bootstrap directory"
+            )
+        unreadable_residue = python_bytecode_residue(unreadable_history)
+        if unreadable_residue:
+            raise ReleaseCheckError(
+                "installed unreadable-history inspect left bytecode residue: "
+                + ", ".join(unreadable_residue)
+            )
+        if tree_digest(unreadable_history) != unreadable_before:
+            raise ReleaseCheckError(
+                "installed unreadable-history inspect changed target bytes"
+            )
+        if profile_state_snapshot(state) != unreadable_profile_before:
+            raise ReleaseCheckError(
+                "installed unreadable-history inspect mutated isolated profile state"
+            )
+        if tree_digest(inspection_temp) != inspection_temp_before:
+            raise ReleaseCheckError(
+                "installed unreadable-history inspect left residue in its "
+                "isolated temporary scope"
+            )
+
         active_project = workspace / "active-work-order-project"
         active_governance = active_project / "governance"
         active_governance.mkdir(parents=True)
@@ -1074,6 +1262,12 @@ def check_candidate(candidate: Path, expected_tag: str) -> None:
         (unrelated_decisions / "DR-001.md").write_text(
             UNRELATED_RATIFIED_DECISION, encoding="utf-8", newline="\n"
         )
+        # WO-WW-033 control: unreadable historical metadata must never relax
+        # this current-authority rejection.
+        (unrelated_governance / "history").mkdir()
+        (unrelated_governance / "history" / OVERSIZED_HISTORY_RECORD_NAME).write_text(
+            OVERSIZED_HISTORY_RECORD, encoding="utf-8", newline="\n"
+        )
         unrelated_before = tree_digest(unrelated)
         unrelated_result = subprocess.run(
             [str(command), "start", "--project-root", str(unrelated)],
@@ -1093,6 +1287,16 @@ def check_candidate(candidate: Path, expected_tag: str) -> None:
             raise ReleaseCheckError(
                 "installed coordinator reported a lockout state for a signed "
                 "but unrelated document at the exact adoption-record path"
+            )
+        unrelated_disclosed = [
+            item for item in (
+                OVERSIZED_HISTORY_HEADER_SENTINEL, OVERSIZED_HISTORY_BODY_SENTINEL
+            ) if item in unrelated_output
+        ]
+        if unrelated_disclosed:
+            raise ReleaseCheckError(
+                "installed unrelated-signed-decision regression disclosed "
+                "synthetic historical material: " + ", ".join(unrelated_disclosed)
             )
         if tree_digest(unrelated) != unrelated_before:
             raise ReleaseCheckError(
@@ -1137,6 +1341,7 @@ def check_candidate(candidate: Path, expected_tag: str) -> None:
 
     print("OK: coordinator release candidate passed")
     print(f"  installed version : {expected_version}")
+    print("  emergency exit    : installed preview, surgical disable, and exact restore passed with a broken active pointer")
     print("  installed command : help and real start passed under normal bytecode behavior")
     print("  conversation-first: bare installed start produced the Architect handoff")
     print("  complete handoff  : all required packets present; no bytecode residue")
@@ -1147,6 +1352,12 @@ def check_candidate(candidate: Path, expected_tag: str) -> None:
     print("  draft regression  : draft adoption record never reports adopted/retired lockout")
     print("  unrelated regression: signed unrelated document at the exact adoption-record")
     print("                      path fails closed; zero target-byte change")
+    print("  unreadable history: an oversized synthetic history header still yields "
+          "meaningful Architect re-entry (full and --brief) with an aggregate "
+          "incomplete-evidence warning, no historical pathname/header/body "
+          "disclosure, and zero target/bootstrap/bytecode/profile mutation "
+          "plus an unchanged redirected temporary scope (before/after snapshot, "
+          "not syscall interception); current-authority rejection is unchanged")
     print("  nested worktree   : installed coordinator stops with a worktree diagnostic")
     print("  candidate unchanged: complete-tree digest preserved")
     print("  installed brief   : new/adopted/active --brief produced labeled sections, "

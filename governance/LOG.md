@@ -1307,3 +1307,45 @@ Fresh distinct public-candidate Opus inspected17 paths and returned ACCEPT-READY
 with no blocking findings; execution/hashes were supplied Coordinator evidence.
 No new account or host/system package change. Final postcloseout qualification
 and authorized publication remain subsequent gates, not claimed complete here.
+
+## Post-pilot WO-WW-033 completed record — 2026-09-17
+
+Owner acceptance and the exact bounded closeout recorder exception are recorded
+in the acceptance task for this checkpoint. Active minutes NOT REPORTED; this
+is not another counted pilot item. Operative Doctrine 0.8 is unchanged.
+
+The coordinator treats unavailable bounded historical metadata as incomplete
+optional evidence, preserving current-authority and path-safety failures.
+The 8192-byte and 200-line limits are enforced before another read. Historical
+bodies and original evidence were not repaired or retrieved.
+
+Two distinct native sessions each passed one excluded Write canary before
+their in-grant writes: denial records 345 and 346, original prefixes preserved,
+target absent. Whole-surface classification remains 8 declared / 0 wholly
+enforced / 8 unenforced. General's instruction-bounded Codex closeout exception
+is separately Owner-authorized; it is not session-local wall proof or a
+same-order retirement mechanism. RFI-24 remains DEFERRED.
+
+Pre-closeout verification on the approved unpublished public-source derivative:
+Windows 853 tests PASS / 14 skips / 464.553 seconds; native Ubuntu 853 tests
+PASS / 4 skips / 125.502 seconds. Installed, distribution, license and identity
+gates passed on both. Raw-read tests and real installed synthetic regressions
+cover the defect. Temporary snapshots show no retained mutation, not syscall
+interception. Earlier RED, environmental failures and review corrections remain
+recorded. Normalized rework/drift counts and Owner reading time NOT MEASURED;
+no operating-cost or new pilot-success claim. A subsequent preinstallation
+command omitted --no-cache-dir and reported a wheel in the application pip
+cache outside the approved resources. That resource deviation is disclosed
+for Owner acknowledgment; the cache was left untouched.
+
+Independent review returned CONFORMANCE PASS, with execution results supplied
+by General rather than independently rerun. Issue #28 is recommended for
+closure on merged public delivery; #41 remains OPEN for the responsibility-view
+and test-coverage residuals. No external issue action occurred; #38 is separate.
+
+The eight WO-WW-033 records were retired byte-identically. The work order's
+ACTIVE header is preserved as its historical issuance snapshot; it grants no
+authority after retirement and is not counted as CLOSED-history evidence.
+Current acceptance/retirement is recorded here and in State. Final actual-root
+qualification follows the private closeout commit and returns separately in
+the task against the exact tested commit. No publication or successor follows.

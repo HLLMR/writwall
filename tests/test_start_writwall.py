@@ -3363,6 +3363,606 @@ class StartWritwallTests(unittest.TestCase):
         self.assertIn("Observed lifecycle state: active_work_order", result.stdout)
         self.assertIn("Operator", result.stdout)
 
+    # -- WO-WW-033 RED: reliable read-only re-entry into a supported
+    # adopted/retired lockout. Closed-history status is optional *refinement*
+    # evidence: within `classify_project` it only distinguishes the
+    # `retired_lockout` and `adopted_lockout` labels, and both route to the
+    # same next role. It is never current authority. A historical record whose
+    # metadata cannot be read within the ratified Amendment 1 bounds is
+    # therefore unavailable optional evidence, not a contradiction, and must
+    # not abort classification for the whole project. The bounds themselves,
+    # the raw no-read-ahead guarantee, and every current-authority and
+    # link-safety contradiction stay exactly as strict as they are today.
+    #
+    # Every fixture below is entirely synthetic. No real historical, archived,
+    # RFI, dist, private or other-project record is created, read or referenced.
+
+    UNREADABLE_HISTORY_RECORD_NAME = "WO-HIST-UNREADABLE.md"
+
+    @staticmethod
+    def incomplete_history_evidence(count: int) -> str:
+        """The exact aggregate limitation string the repaired classifier must
+        report: a count only, never a historical pathname, reason text or body.
+        """
+        return (
+            "historical work-order metadata was unreadable or out of bounds "
+            f"for {count} record(s); closed-history evidence is incomplete"
+        )
+
+    def unreadable_history_bytes(self, variant: str) -> bytes:
+        """Synthetic historical records exercising each genuine bounded-reader
+        failure mode: the byte bound, a missing closing delimiter, the line
+        bound, and invalid header encoding. Each is an evidence-availability
+        limit, never a statement about current authority.
+        """
+        if variant == "oversized_bytes":
+            return (
+                b"---\nid: WO-HIST-UNREADABLE\npadding: "
+                + b"x" * (starter_module._MAX_FRONTMATTER_BYTES + 100)
+                + b"\nstatus: CLOSED\n---\n"
+            )
+        if variant == "unterminated_header":
+            return b"---\nid: WO-HIST-UNREADABLE\nstatus: CLOSED\n"
+        if variant == "over_line_bound":
+            return (
+                b"---\n"
+                + b"".join(
+                    b"note-%03d: synthetic\n" % index
+                    for index in range(starter_module._MAX_FRONTMATTER_LINES + 50)
+                )
+                + b"status: CLOSED\n---\n"
+            )
+        if variant == "malformed_encoding":
+            return (
+                b"---\nid: WO-HIST-UNREADABLE\nnote: \xff\xfe\n"
+                b"status: CLOSED\n---\n"
+            )
+        raise AssertionError(f"unknown unreadable-history variant {variant!r}")
+
+    def write_unreadable_history_record(
+        self, governance: Path, variant: str = "oversized_bytes"
+    ) -> Path:
+        history = governance / "history"
+        history.mkdir(parents=True, exist_ok=True)
+        record = history / self.UNREADABLE_HISTORY_RECORD_NAME
+        record.write_bytes(self.unreadable_history_bytes(variant))
+        return record
+
+    def seed_lockout_project(
+        self, name: str, *, closed_history: bool,
+        unreadable_variant: str | None = "oversized_bytes",
+    ) -> Path:
+        """A supported, ratified adopted/retired lockout fixture, optionally
+        carrying one historical record whose metadata cannot be read.
+        """
+        project = self.temp / name
+        governance = project / "governance"
+        governance.mkdir(parents=True)
+        (project / "CLAUDE.md").write_text(
+            "# Charter\n\nA.1 Prohibitions apply.\n", encoding="utf-8"
+        )
+        for entry in ("PLAN.md", "STATE.md", "ROUTING.md"):
+            (governance / entry).write_text(f"# {entry}\n", encoding="utf-8")
+        decisions = governance / "decisions"
+        decisions.mkdir()
+        (decisions / "DR-001.md").write_text(
+            ratified_adoption_record(), encoding="utf-8"
+        )
+        history = governance / "history"
+        history.mkdir()
+        if closed_history:
+            (history / "WO-HIST-CLOSED.md").write_text(
+                "---\nid: WO-HIST-CLOSED\nstatus: CLOSED\n---\n",
+                encoding="utf-8",
+            )
+        if unreadable_variant is not None:
+            self.write_unreadable_history_record(governance, unreadable_variant)
+        return project
+
+    def test_lockout_entry_survives_unreadable_history_metadata_in_every_bounded_failure_mode(self):
+        """RED: today a single historical record whose frontmatter exceeds the
+        8192-byte bound (or the line bound, or lacks a closing delimiter, or
+        carries invalid header encoding) raises out of `classify_project` and
+        stops read-only entry entirely -- `inspect` exits 2 with STOP.
+
+        The whole project is supported and ratified: the activation pointer is
+        absent, Plan/State/Routing exist, and a complete Appendix D adoption
+        record is present. None of those conclusions depends on historical
+        status. Entry must succeed, name the correct lifecycle, and state the
+        evidence limitation plainly as an aggregate count -- never counting an
+        unreadable record as closed, never naming a historical pathname, and
+        never widening the bound.
+        """
+        for variant in (
+            "oversized_bytes", "unterminated_header",
+            "over_line_bound", "malformed_encoding",
+        ):
+            for closed_history in (True, False):
+                lifecycle = "retired" if closed_history else "adopted"
+                with self.subTest(variant=variant, lifecycle=lifecycle):
+                    project = self.seed_lockout_project(
+                        f"lockout-{variant}-{lifecycle}",
+                        closed_history=closed_history,
+                        unreadable_variant=variant,
+                    )
+                    expected = f"{lifecycle}_lockout"
+                    before = self.tree_snapshot(project)
+
+                    result = self.run_inspect("architect", project)
+
+                    self.assertEqual(
+                        result.returncode, 0, result.stdout + result.stderr
+                    )
+                    self.assertEqual(self.tree_snapshot(project), before)
+                    self.assertFalse(self.state.exists())
+                    self.assertIn(
+                        f"Observed lifecycle state: {expected}", result.stdout
+                    )
+                    self.assertIn(
+                        "Selected role: Fresh Architect", result.stdout
+                    )
+                    self.assertIn(
+                        self.incomplete_history_evidence(1), result.stdout
+                    )
+                    if closed_history:
+                        self.assertIn(
+                            "1 closed work-order record", result.stdout,
+                            "the readable CLOSED record must still be counted",
+                        )
+                    else:
+                        self.assertNotIn(
+                            "closed work-order record", result.stdout,
+                            "an unreadable record must never be counted as closed",
+                        )
+                    self.assertNotIn(
+                        self.UNREADABLE_HISTORY_RECORD_NAME, result.stdout
+                    )
+                    self.assertNotIn("governance/history", result.stdout)
+
+        with self.subTest(surface="compact brief and General entry"):
+            project = self.seed_lockout_project(
+                "lockout-brief-and-general", closed_history=True,
+            )
+            before = self.tree_snapshot(project)
+
+            brief = self.run_inspect("architect", project, brief=True)
+            general = self.run_inspect("general", project)
+
+            self.assertEqual(brief.returncode, 0, brief.stdout + brief.stderr)
+            self.assertEqual(
+                general.returncode, 0, general.stdout + general.stderr
+            )
+            self.assertEqual(self.tree_snapshot(project), before)
+            self.assertFalse(self.state.exists())
+            for stdout in (brief.stdout, general.stdout):
+                self.assertIn(
+                    "Observed lifecycle state: retired_lockout", stdout
+                )
+                self.assertNotIn(self.UNREADABLE_HISTORY_RECORD_NAME, stdout)
+                self.assertNotIn("governance/history", stdout)
+            self.assertIn("### Compact continuation brief", brief.stdout)
+            self.assertIn(self.incomplete_history_evidence(1), brief.stdout)
+            self.assertIn("1 closed work-order record", brief.stdout)
+            self.assertIn("Selected role: Fresh General", general.stdout)
+
+    def test_unreadable_history_metadata_is_never_read_past_its_bound_or_disclosed(self):
+        """RED: the repair must not be bought with a larger bound or a body
+        read. Instruments the actual raw file-I/O boundary for one oversized
+        synthetic record carrying a sentinel inside its header and a second
+        sentinel in its body, well past the bound.
+
+        Requires the record still be opened unbuffered (`buffering=0`, so no
+        internal buffered reader can pull body bytes into memory ahead of the
+        caller's own requests), sums every byte ever returned across every read
+        call, and asserts that total equals the configured byte cap exactly:
+        the budget is enforced before each request, so the byte after the cap
+        is never read at all. No returned chunk may carry
+        a body byte, and neither sentinel -- nor the historical pathname -- may
+        reach any rendered output, even though the header sentinel's bytes were
+        genuinely read.
+        """
+        header_sentinel = b"HISTORICAL-HEADER-SENTINEL"
+        body_sentinel = b"HISTORICAL-BODY-SENTINEL"
+        project = self.seed_lockout_project(
+            "unreadable-history-privacy", closed_history=True,
+            unreadable_variant=None,
+        )
+        record = (
+            project / "governance" / "history"
+            / self.UNREADABLE_HISTORY_RECORD_NAME
+        )
+        record.write_bytes(
+            b"---\nid: WO-HIST-UNREADABLE\nnote: " + header_sentinel + b"\n"
+            b"padding: "
+            + b"x" * (starter_module._MAX_FRONTMATTER_BYTES + 512)
+            + b"\nstatus: CLOSED\n---\n"
+            + body_sentinel + b" synthetic body content\n"
+        )
+        before = self.tree_snapshot(project)
+
+        raw_bytes_consumed = 0
+        buffering_used: list[object] = []
+        original_open = Path.open
+        test_case = self
+
+        class _BoundedReadProxy:
+            """Forwards to the real handle while measuring every byte it ever
+            returns, at the exact boundary the production code calls."""
+
+            def __init__(self, handle):
+                self._handle = handle
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc_info):
+                return self._handle.__exit__(*exc_info)
+
+            @staticmethod
+            def _record_chunk(chunk: bytes) -> None:
+                nonlocal raw_bytes_consumed
+                raw_bytes_consumed += len(chunk)
+                test_case.assertNotIn(
+                    body_sentinel, chunk,
+                    "raw read consumed a byte of the historical body",
+                )
+
+            def read(self, size=-1, *args, **kwargs):
+                result = self._handle.read(size, *args, **kwargs)
+                self._record_chunk(
+                    result if isinstance(result, (bytes, bytearray)) else b""
+                )
+                return result
+
+            def readinto(self, buffer):
+                result = self._handle.readinto(buffer)
+                if result:
+                    self._record_chunk(bytes(buffer[:result]))
+                return result
+
+            def __getattr__(self, name):
+                return getattr(self._handle, name)
+
+        def instrumented_open(self_path, *args, **kwargs):
+            handle = original_open(self_path, *args, **kwargs)
+            if self_path.name != record.name:
+                return handle
+            buffering_used.append(
+                kwargs.get("buffering", args[1] if len(args) > 1 else -1)
+            )
+            return _BoundedReadProxy(handle)
+
+        with mock.patch.object(Path, "open", instrumented_open):
+            state = starter_module.classify_project(project)
+
+        self.assertEqual(state.name, "retired_lockout")
+        self.assertIn(
+            self.incomplete_history_evidence(1), "\n".join(state.evidence)
+        )
+        self.assertTrue(
+            buffering_used, "expected the historical record to be opened"
+        )
+        self.assertIn(
+            0, buffering_used,
+            "the historical record must still be opened with buffering=0 "
+            "(raw, unbuffered binary I/O), so no internal buffer can pull "
+            "body bytes into memory ahead of the caller's own requests",
+        )
+        self.assertEqual(
+            raw_bytes_consumed, starter_module._MAX_FRONTMATTER_BYTES,
+            "the reader must stop exactly at its configured byte cap: the "
+            "byte after the cap is never requested, the cap is not widened, "
+            "and the body is never reached",
+        )
+
+        output = io.StringIO()
+        with redirect_stdout(output):
+            exit_code = starter_module.inspect_main(
+                ["--project-root", str(project), "--role", "architect",
+                 "--brief"]
+            )
+        rendered = output.getvalue()
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(self.tree_snapshot(project), before)
+        self.assertIn(self.incomplete_history_evidence(1), rendered)
+        self.assertNotIn(header_sentinel.decode("ascii"), rendered)
+        self.assertNotIn(body_sentinel.decode("ascii"), rendered)
+        self.assertNotIn(self.UNREADABLE_HISTORY_RECORD_NAME, rendered)
+        self.assertNotIn("governance/history", rendered)
+
+    def measure_bounded_read(self, record: Path):
+        """Run `_bounded_frontmatter_status` over one record, capturing every
+        raw byte it ever requests at the real file-I/O boundary.
+
+        Returns (raised, status, consumed_bytes, buffering_used).
+        """
+        chunks: list[bytes] = []
+        buffering_used: list[object] = []
+        original_open = Path.open
+
+        class _MeasuringProxy:
+            def __init__(self, handle):
+                self._handle = handle
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc_info):
+                return self._handle.__exit__(*exc_info)
+
+            def read(self, size=-1, *args, **kwargs):
+                result = self._handle.read(size, *args, **kwargs)
+                if isinstance(result, (bytes, bytearray)):
+                    chunks.append(bytes(result))
+                return result
+
+            def readinto(self, buffer):
+                result = self._handle.readinto(buffer)
+                if result:
+                    chunks.append(bytes(buffer[:result]))
+                return result
+
+            def __getattr__(self, name):
+                return getattr(self._handle, name)
+
+        def instrumented_open(self_path, *args, **kwargs):
+            handle = original_open(self_path, *args, **kwargs)
+            if self_path.name != record.name:
+                return handle
+            buffering_used.append(
+                kwargs.get("buffering", args[1] if len(args) > 1 else -1)
+            )
+            return _MeasuringProxy(handle)
+
+        raised = None
+        status = None
+        with mock.patch.object(Path, "open", instrumented_open):
+            try:
+                status = starter_module._bounded_frontmatter_status(record)
+            except starter_module.CoordinatorError as exc:
+                raised = exc
+        return raised, status, b"".join(chunks), buffering_used
+
+    def test_bounded_frontmatter_reader_stops_exactly_at_its_configured_byte_and_line_caps(self):
+        """RED: the issued bound is AT MOST 8192 bytes and 200 lines, so the
+        8193rd byte and the first byte of the 201st line must never be
+        requested at all -- today the reader consumes the breaching byte and
+        only then rejects it.
+
+        Instruments the real raw-I/O boundary directly. The configured limits
+        stay 8192/200; a header whose closing delimiter falls exactly on a cap
+        must still parse, so the tightening cannot be bought by rejecting
+        valid headers one unit early. Entirely synthetic records.
+        """
+        byte_cap = starter_module._MAX_FRONTMATTER_BYTES
+        line_cap = starter_module._MAX_FRONTMATTER_LINES
+
+        with self.subTest(cap="byte cap is never overrun"):
+            body_sentinel = b"BYTE-CAP-BODY-SENTINEL"
+            record = self.temp / "WO-BYTE-CAP.md"
+            record.write_bytes(
+                b"---\nid: WO-BYTE-CAP\npadding: "
+                + b"x" * (byte_cap + 512)
+                + b"\nstatus: CLOSED\n---\n" + body_sentinel + b"\n"
+            )
+
+            raised, status, consumed, buffering_used = self.measure_bounded_read(record)
+
+            self.assertIsNotNone(raised)
+            self.assertIn(f"{byte_cap}-byte bound", str(raised))
+            self.assertIsNone(status)
+            self.assertIn(0, buffering_used)
+            self.assertEqual(
+                len(consumed), byte_cap,
+                "the byte after the configured cap must never be requested",
+            )
+            self.assertNotIn(body_sentinel, consumed)
+
+        with self.subTest(cap="line cap is never overrun"):
+            line_sentinel = b"LINE-CAP-SENTINEL"
+            record = self.temp / "WO-LINE-CAP.md"
+            record.write_bytes(
+                b"---\n"
+                + b"".join(
+                    b"note-%03d: synthetic\n" % index
+                    for index in range(line_cap - 1)
+                )
+                + b"note-xxx: " + line_sentinel + b"\n"
+                + b"status: CLOSED\n---\n"
+            )
+
+            raised, status, consumed, buffering_used = self.measure_bounded_read(record)
+
+            self.assertIsNotNone(raised)
+            self.assertIn(f"{line_cap}-line bound", str(raised))
+            self.assertIsNone(status)
+            self.assertIn(0, buffering_used)
+            self.assertEqual(
+                consumed.count(b"\n"), line_cap,
+                "at most the configured number of lines may be consumed, "
+                "counting the newline that terminates each one",
+            )
+            self.assertNotIn(
+                line_sentinel, consumed,
+                "no byte of the line after the cap may be requested",
+            )
+            self.assertLessEqual(len(consumed), byte_cap)
+
+        with self.subTest(cap="a header exactly at the line cap still parses"):
+            record = self.temp / "WO-LINE-CAP-EXACT.md"
+            record.write_bytes(
+                b"---\n"
+                + b"".join(
+                    b"note-%03d: synthetic\n" % index
+                    for index in range(line_cap - 3)
+                )
+                + b"status: CLOSED\n---\nsynthetic body content\n"
+            )
+
+            raised, status, consumed, _ = self.measure_bounded_read(record)
+
+            self.assertIsNone(raised, "a header exactly at the line cap must parse")
+            self.assertEqual(status, "CLOSED")
+            self.assertEqual(consumed.count(b"\n"), line_cap)
+            self.assertNotIn(b"synthetic body content", consumed)
+
+    def test_unreadable_history_metadata_never_relaxes_current_authority_or_link_safety(self):
+        """RED: the repair must be scoped to the bounded metadata read alone.
+
+        With an unreadable historical record present in every fixture, each
+        current-lifecycle contradiction must fail closed exactly as it does
+        today, adoption must never be manufactured, and per-record containment
+        and link safety inside the history directory must still stop before any
+        external read. A blanket `except CoordinatorError` around the history
+        loop body would pass the two tests above and fail these.
+        """
+        core = ("PLAN.md", "STATE.md", "ROUTING.md")
+
+        def seed_core(name: str) -> Path:
+            project = self.temp / name
+            governance = project / "governance"
+            governance.mkdir(parents=True)
+            for entry in core:
+                (governance / entry).write_text(f"# {entry}\n", encoding="utf-8")
+            return project
+
+        with self.subTest(case="draft_adoption_never_becomes_adopted"):
+            project = seed_core("unreadable-history-draft-adoption")
+            governance = project / "governance"
+            decisions = governance / "decisions"
+            decisions.mkdir()
+            (decisions / "DR-001.md").write_text(
+                draft_adoption_record(), encoding="utf-8"
+            )
+            self.write_unreadable_history_record(governance)
+            before = self.tree_snapshot(project)
+
+            result = self.run_inspect("auto", project)
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(self.tree_snapshot(project), before)
+            self.assertIn(
+                "Observed lifecycle state: partial_bootstrap", result.stdout
+            )
+            self.assertNotIn("adopted_lockout", result.stdout)
+            self.assertNotIn("retired_lockout", result.stdout)
+
+        with self.subTest(case="malformed_adoption_record_still_fails_closed"):
+            project = seed_core("unreadable-history-malformed-adoption")
+            governance = project / "governance"
+            decisions = governance / "decisions"
+            decisions.mkdir()
+            (decisions / "DR-001.md").write_text(
+                unrelated_ratified_decision(), encoding="utf-8"
+            )
+            self.write_unreadable_history_record(governance)
+            before = self.tree_snapshot(project)
+
+            result = self.run_inspect("auto", project)
+
+            self.assertNotEqual(result.returncode, 0, result.stdout)
+            self.assertEqual(self.tree_snapshot(project), before)
+            self.assertIn("inconsistent state", result.stderr)
+            self.assertIn("adoption-record title", result.stderr)
+            self.assertNotIn("Naming decision", result.stderr)
+
+        with self.subTest(case="contradictory_adoption_records_still_fail_closed"):
+            project = seed_core("unreadable-history-contradictory-adoption")
+            governance = project / "governance"
+            decisions = governance / "decisions"
+            decisions.mkdir()
+            (decisions / "DR-001.md").write_text(
+                ratified_adoption_record(), encoding="utf-8"
+            )
+            (governance / "ADOPTION-RECORD.md").write_text(
+                ratified_adoption_record(
+                    title="# Adoption record (alternate path)", revision="0.6",
+                ),
+                encoding="utf-8",
+            )
+            self.write_unreadable_history_record(governance)
+            before = self.tree_snapshot(project)
+
+            result = self.run_inspect("auto", project)
+
+            self.assertNotEqual(result.returncode, 0, result.stdout)
+            self.assertEqual(self.tree_snapshot(project), before)
+            self.assertIn("inconsistent state", result.stderr)
+            self.assertIn("contradictory", result.stderr)
+
+        with self.subTest(case="active_order_without_pointer_still_fails_closed"):
+            project = seed_core("unreadable-history-active-without-pointer")
+            governance = project / "governance"
+            orders = governance / "work-orders"
+            orders.mkdir()
+            (orders / "WO-001.md").write_text(
+                "---\nid: WO-001\nstatus: ACTIVE\n---\n", encoding="utf-8"
+            )
+            self.write_unreadable_history_record(governance)
+            before = self.tree_snapshot(project)
+
+            result = self.run_inspect("auto", project)
+
+            self.assertNotEqual(result.returncode, 0, result.stdout)
+            self.assertEqual(self.tree_snapshot(project), before)
+            self.assertIn(
+                "ACTIVE work order(s) exist without an activation pointer",
+                result.stderr,
+            )
+
+        with self.subTest(case="bootstrap_conflict_still_fails_closed"):
+            project = self.seed_lockout_project(
+                "unreadable-history-bootstrap-conflict", closed_history=False,
+            )
+            (project / starter_module.OUTPUT_NAME).mkdir()
+            before = self.tree_snapshot(project)
+
+            result = self.run_inspect("auto", project)
+
+            self.assertNotEqual(result.returncode, 0, result.stdout)
+            self.assertEqual(self.tree_snapshot(project), before)
+            self.assertIn("inconsistent state", result.stderr)
+            self.assertIn(".writwall-bootstrap", result.stderr)
+
+        with self.subTest(case="symlinked_history_record_still_fails_closed"):
+            external = self.temp / "external-history-record.md"
+            external.write_text(
+                "---\nid: WO-EXT\nstatus: CLOSED\n---\nSECRET-SENTINEL\n",
+                encoding="utf-8",
+            )
+            project = self.seed_lockout_project(
+                "unreadable-history-symlinked-record", closed_history=False,
+            )
+            linked = project / "governance" / "history" / "WO-LINKED.md"
+            try:
+                linked.symlink_to(external)
+            except OSError as exc:
+                self.skipTest(f"symlink privilege unavailable: {exc}")
+            before = self.tree_snapshot(project)
+
+            result = self.run_inspect("auto", project)
+
+            self.assertNotEqual(result.returncode, 0, result.stdout)
+            self.assertEqual(self.tree_snapshot(project), before)
+            self.assertIn("symlink", (result.stdout + result.stderr).lower())
+            self.assertNotIn("SECRET-SENTINEL", result.stdout + result.stderr)
+
+        with self.subTest(case="non_regular_history_entry_still_fails_closed"):
+            project = self.seed_lockout_project(
+                "unreadable-history-directory-entry", closed_history=False,
+            )
+            (project / "governance" / "history" / "WO-DIRECTORY.md").mkdir()
+            before = self.tree_snapshot(project)
+
+            result = self.run_inspect("auto", project)
+
+            self.assertNotEqual(result.returncode, 0, result.stdout)
+            self.assertEqual(self.tree_snapshot(project), before)
+            self.assertIn(
+                "historical work-order record is not a file", result.stderr
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

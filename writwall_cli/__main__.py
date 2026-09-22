@@ -17,6 +17,11 @@ def build_parser() -> argparse.ArgumentParser:
         description="Start with an idea and prepare a governed project handoff.",
         help="Start with an idea",
     )
+    commands.add_parser(
+        "uninstall",
+        description="Preview or apply an Owner-operated emergency exit.",
+        help="Disable Writwall safely with backup and restore",
+    )
     inspect = commands.add_parser(
         "inspect",
         description="Inspect a project and print a read-only role handoff.",
@@ -55,6 +60,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if arguments[0] == "privacy":
         from scripts.privacy_screen import main as privacy_main
         return privacy_main(arguments[1:])
+    if arguments[0] == "uninstall":
+        from scripts.uninstall_writwall import main as uninstall_main
+        return uninstall_main(arguments[1:])
     if arguments[0] == "inspect":
         from writwall_cli.coordinator import inspect
         return inspect(arguments[1:])

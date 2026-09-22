@@ -21,6 +21,8 @@ path = [
   "docs/identity-migration.md",
   "docs/name-clearance.md",
   "docs/privacy-screen.md",
+  "docs/uninstall.md",
+  "docs/recovery-postmortem.md",
   "examples/**",
   "governance/**",
   "identity/**",

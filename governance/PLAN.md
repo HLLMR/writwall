@@ -1,5 +1,11 @@
 # PLAN — Plumbline
 
+## Owner-ratified reading clarification — 2026-09-17
+
+This Plan preserves successive ratified intent and dated amendments. Its original title and section 3, “Current phase,” are retained evidence from earlier checkpoints, not the current identity, adoption, lifecycle, or publication status. Read the newest acceptance checkpoint in `governance/STATE.md`, its corresponding `governance/LOG.md` entry, and the current activation pointer alongside the applicable later Plan amendments and decisions. Plan remains ratified intent; State and Log record observations and accepted completion. Neither a dated observation nor this reading guide grants new execution authority.
+
+Section 36 authorized v0.12.0 delivery through WO-WW-032, including the accepted WO-WW-027/028/029 and WO-WW-031 work. WO-WW-033 instead received separate explicit Owner approval in its acceptance task for the bounded continuity scope and exact recorder exceptions, as recorded in the WO-WW-033 completion entry in `governance/LOG.md`. It did not inherit successor authority from section 36. The absence of separately numbered Plan sections for these orders does not reopen their recorded approvals or require retroactive ratification. Consult the newest State and corresponding Log records for subsequent delivery and lifecycle observations; this note changes no adoption boundary, standing recorder authority, or deferred RFI disposition.
+
 **Status: RATIFIED by the Owner (HLLMR) on 2026-08-16**, for the self-adoption and 10-work-order pilot.
 
 Scope: the **repository-development role**. Root `decisions/DR-001.md` is Plan for the distinct **methodology-source role** and ratifies Doctrine 0.6. The two do not overlap (adoption mapping, 2026-08-16).

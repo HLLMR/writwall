@@ -2,7 +2,63 @@
 
 # STATE — Writwall
 
-## Current closeout checkpoint — 2026-09-17, WO-WW-032
+## Current direction — final recovery release v0.13.0, 2026-09-21
+
+The Owner directed the final v0.13.0 recovery release: investigate the failed
+provider handoff, provide an Owner-operated emergency uninstall, and end
+Writwall development with that release. This source prepares that recovery
+tool and its verification; the published tag and release assets establish
+delivery, not this snapshot. No adopter is migrated or uninstalled by updating
+the tooling. Private adopted Doctrine 0.8 and distributed Doctrine 0.9 remain
+distinct. New adoption is discouraged. See `docs/uninstall.md` and
+`docs/recovery-postmortem.md`.
+
+This isolated release branch excludes the main checkout's unfinished
+WO-WW-034 changes. Earlier checkpoints below are dated historical observations,
+not current execution instructions for this final Owner-directed release.
+
+## Dated acceptance and retirement checkpoint — WO-WW-033
+
+**OBSERVED:** This checkpoint records the Owner-authorized acceptance and
+retirement of WO-WW-033, before the final actual-root qualification. No active
+work order remains; the repository is in lockout. No successor is authorized by
+this checkpoint. The correction is private and unpublished; public `v0.12.0`
+remains commit `ddacb3367a97641540b19d3a478cab96e436cfac`, observed 2026-09-17.
+Doctrine 0.8 remains operative here under `governance/decisions/DR-003.md` (private governed-source record, not carried by public candidates) and
+`CLAUDE.md`; distributed Doctrine 0.9 does not migrate this repository.
+WO-WW-032 remains accepted and retired in current records.
+
+Public issues #28 and #41 were externally OPEN as observed 2026-09-17. The
+private evidence-based recommendation for #28 is closure on the merged
+delivery, subject to maintainer judgment. For #41 the recommendation is to
+**keep the issue open**: the published contract covers every named scenario,
+but two criteria are verified as unmet — the responsibility view omits
+coordinator, executor, and evidence age, and several acceptance tests rest on
+bare-token assertions, one of which is satisfied by an unrelated word. A
+bounded residual follow-up is named in the issue-disposition record; it is not
+scoped, started, or authorized here. No external comment, label, or close action
+was taken. Issue #38 remains separate and out of scope.
+
+RFI-24 remains DEFERRED
+(`governance/rfis/RFI-24-active-work-order-retirement-mechanics.md`). The
+retirement procedure used here is a bounded coordinated closeout, not a
+universal agent-retirement fix, and does not dispose of that RFI.
+
+At this checkpoint final actual-root qualification has not yet run; the gate
+follows the closeout commit. Its later read-only source and installed full and
+brief checks, and the fresh Architect's findings, return in this task through
+General to Architect to Owner, naming the exact tested closeout commit. This
+snapshot does not claim that later result; re-entry must recheck the current
+checkout.
+
+Evidence limitations at this checkpoint: no historical body was read, and
+closed-history status is optional refinement evidence only — where a record's
+metadata is unreadable within the ratified bounds, the coordinator reports an
+aggregate count and never a pathname. Whole-surface enforcement classification
+is unchanged and no surface is represented as newly proven. This checkpoint
+adds no roadmap.
+
+## Dated snapshot — 2026-09-17, WO-WW-032
 
 **OBSERVED:** Owner accepted WO-WW-032 including disclosed deviations and
 directed authorized closeout and v0.12.0 publication. Active minutes NOT
@@ -26,7 +82,7 @@ sidebar. Evidence: governance/history/WO-WW-032-report.md and (private governed-
 governance/history/WO-WW-032-issuance-lifecycle.md (private governed-source (private governed-source reference, not present in this candidate)
 references, not present in the public candidate).
 
-## Current closeout checkpoint — 2026-09-17, WO-WW-031
+## Dated snapshot — 2026-09-17, WO-WW-031
 
 **OBSERVED:** Owner accepted031 with "Accepted, proceed", including disclosed
 deviations; active minutes NOT REPORTED. Final native Windows848 total/13 skips
@@ -49,7 +105,7 @@ Evidence: governance/history/WO-WW-031-acceptance-closeout.md and (private gover
 governance/history/WO-WW-031-report.md (private governed-source references, (private governed-source reference, not present in this candidate)
 not present in the public candidate).
 
-## Latest bounded checkpoint — 2026-09-16, WO-WW-030
+## Dated snapshot — 2026-09-16, WO-WW-030
 
 **OBSERVED:** Owner accepted WO-WW-030 with its disclosed deviations and ratified
 the exact Doctrine 0.9 candidate. Active minutes NOT REPORTED. Independent Opus
@@ -79,7 +135,7 @@ Evidence: `governance/history/WO-WW-030-ratification-closeout.md` and (private g
 references, not present in the public candidate). Older checkpoints below are
 dated snapshots, not current execution or authorization status.
 
-## Latest bounded checkpoint — 2026-09-16, WO-WW-029
+## Dated snapshot — 2026-09-16, WO-WW-029
 
 **OBSERVED:** Owner accepted WO-WW-029 with disclosed sequencing overlap,
 post-implementation coverage and environment diagnostics, plus a non-blocking
@@ -111,7 +167,7 @@ Evidence: `governance/history/WO-WW-029-report.md` (private governed-source refe
 `governance/history/WO-WW-029-issuance-lifecycle.md` (private governed-source reference, not present in this candidate),
 and `governance/history/WO-WW-029-closeout-brief.md` (private governed-source reference, not present in this candidate).
 
-## Latest bounded checkpoint — 2026-09-15, WO-WW-028
+## Dated snapshot — 2026-09-15, WO-WW-028
 
 **OBSERVED:** Owner accepted WO-WW-028 with disclosed deviations and coverage
 limits; active minutes NOT REPORTED. The opt-in `inspect --brief` capability
@@ -142,7 +198,7 @@ Evidence: `governance/history/WO-WW-028-report.md` (private governed-source refe
 `governance/history/WO-WW-028-issuance-lifecycle.md` (private governed-source reference, not present in this candidate),
 and `governance/history/WO-WW-028-closeout-brief.md` (private governed-source reference, not present in this candidate).
 
-## Latest bounded checkpoint — 2026-09-14, WO-WW-027
+## Dated snapshot — 2026-09-14, WO-WW-027
 
 **OBSERVED:** Owner accepted WO-WW-027, including disclosed deviations; active
 minutes NOT REPORTED. Approval-continuity source, installed-output checks and
@@ -252,6 +308,7 @@ externally.
 ---
 
 ## OBSERVED
+Dated snapshot tables. Rows record status as observed when written; they are not a current verification of GitHub, release, or issue state.
 
 ### Authority and adoption
 
