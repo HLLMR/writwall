@@ -26,6 +26,7 @@ REQUIRED_SOURCE = (
     "writwall_cli/coordinator.py",
     "scripts/start_writwall.py",
     "scripts/privacy_screen.py",
+    "scripts/uninstall_writwall.py",
     "skills/writwall-adopt",
 )
 
@@ -51,7 +52,7 @@ class CoordinatorReleaseTests(unittest.TestCase):
     def run_checker(self, candidate: Path, *extra: str):
         arguments = [str(candidate), *extra]
         if "--expected-tag" not in extra:
-            arguments.extend(("--expected-tag", "v0.12.0"))
+            arguments.extend(("--expected-tag", "v0.13.0"))
         return subprocess.run(
             [sys.executable, "-B", str(CHECKER), *arguments],
             cwd=REPO_ROOT,
@@ -157,6 +158,7 @@ class CoordinatorReleaseTests(unittest.TestCase):
         self.assertIn("retired lockout", result.stdout)
         self.assertIn("draft regression", result.stdout)
         self.assertIn("unrelated regression", result.stdout)
+        self.assertIn("unreadable history", result.stdout)
         self.assertIn("zero target-byte change", result.stdout)
         self.assertIn("candidate unchanged", result.stdout)
         self.assertEqual(tree_digest(candidate), before)
@@ -295,6 +297,47 @@ class CoordinatorReleaseTests(unittest.TestCase):
         self.assertIn(
             "operational preflight",
             (result.stdout + result.stderr).lower(),
+        )
+        self.assertEqual(tree_digest(candidate), before)
+
+    def test_installed_reintroduced_oversized_history_defect_fails_release_gate(self):
+        """The new installed gate must actually catch the demonstrated bug.
+
+        Reintroduce the pre-repair behavior in a synthetic candidate -- an
+        unreadable historical header aborting classification instead of being
+        counted as unavailable optional evidence -- and require the real
+        installed-wheel checker to reject it. This is a genuine defect
+        injection against installed output, not a source grep and not a
+        mocked collaborator. The unmodified-candidate case is already covered
+        by `test_complete_external_candidate_installs_and_emits_full_handoff`,
+        which also pins the checker's aggregate-warning constant to whatever
+        the classifier actually emits.
+        """
+        candidate = self.make_candidate()
+        start = candidate / "scripts" / "start_writwall.py"
+        original = start.read_text(encoding="utf-8")
+        scoped_catch = (
+            "            try:\n"
+            "                status = _bounded_frontmatter_status(safe_path)\n"
+            "            except CoordinatorError:\n"
+            "                indeterminate_history += 1\n"
+            "                continue\n"
+        )
+        self.assertIn(scoped_catch, original)
+        start.write_text(
+            original.replace(
+                scoped_catch,
+                "            status = _bounded_frontmatter_status(safe_path)\n",
+            ),
+            encoding="utf-8",
+            newline="\n",
+        )
+        before = tree_digest(candidate)
+        result = self.run_checker(candidate)
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(
+            "installed unreadable-history inspect",
+            result.stdout + result.stderr,
         )
         self.assertEqual(tree_digest(candidate), before)
 
@@ -510,15 +553,15 @@ class CoordinatorReleaseTests(unittest.TestCase):
         pyproject = candidate / "pyproject.toml"
         pyproject.write_text(
             pyproject.read_text(encoding="utf-8").replace(
-                'version = "0.12.0"', 'version = "0.9.0"'
+                'version = "0.13.0"', 'version = "0.9.0"'
             ),
             encoding="utf-8",
             newline="\n",
         )
-        result = self.run_checker(candidate, "--expected-tag", "v0.12.0")
+        result = self.run_checker(candidate, "--expected-tag", "v0.13.0")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(
-            "candidate version '0.9.0' does not match intended tag 'v0.12.0'",
+            "candidate version '0.9.0' does not match intended tag 'v0.13.0'",
             result.stdout + result.stderr,
         )
 
@@ -564,7 +607,7 @@ class CoordinatorReleaseTests(unittest.TestCase):
     def test_release_identity_and_public_payload_are_coherent(self):
         with (REPO_ROOT / "pyproject.toml").open("rb") as handle:
             project = tomllib.load(handle)["project"]
-        self.assertEqual(project["version"], "0.12.0")
+        self.assertEqual(project["version"], "0.13.0")
         readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
         adopting = (REPO_ROOT / "ADOPTING.md").read_text(encoding="utf-8")
         contributing = (REPO_ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
@@ -572,17 +615,17 @@ class CoordinatorReleaseTests(unittest.TestCase):
         start = (REPO_ROOT / "START-HERE.md").read_text(encoding="utf-8")
         skill = (REPO_ROOT / "skills" / "writwall-adopt" / "SKILL.md").read_text(
             encoding="utf-8")
-        tagged_archive = "archive/refs/tags/v0.12.0.zip"
+        tagged_archive = "archive/refs/tags/v0.13.0.zip"
         self.assertIn(tagged_archive, readme)
         self.assertIn(tagged_archive, adopting)
         self.assertIn(tagged_archive, start)
-        self.assertIn("--expected-tag v0.12.0", publication)
-        self.assertIn("--expected-tag v0.12.0", contributing)
+        self.assertIn("--expected-tag v0.13.0", publication)
+        self.assertIn("--expected-tag v0.13.0", contributing)
         for document in (readme, adopting, start):
             self.assertNotIn("not yet published", document)
             self.assertIn(
                 'python -m pip install '
-                '"https://github.com/HLLMR/writwall/archive/refs/tags/v0.12.0.zip"',
+                '"https://github.com/HLLMR/writwall/archive/refs/tags/v0.13.0.zip"',
                 document,
             )
             self.assertIn("writwall inspect", document)

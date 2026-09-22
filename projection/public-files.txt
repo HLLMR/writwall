@@ -52,6 +52,8 @@ docs/day-zero-coordinator.md
 docs/identity-migration.md
 docs/name-clearance.md
 docs/privacy-screen.md
+docs/recovery-postmortem.md
+docs/uninstall.md
 examples/README.md
 examples/name-clearance-incident-2026-08.md
 examples/name-clearance-ledgers/grantcord-candidate.json
@@ -95,6 +97,7 @@ scripts/build_public_projection.py
 scripts/collect_name_clearance.py
 scripts/privacy_screen.py
 scripts/start_writwall.py
+scripts/uninstall_writwall.py
 skills/writwall-adopt/LICENSE-MAP.md
 skills/writwall-adopt/SKILL.md
 skills/writwall-adopt/assets/adapters/claude-code/README.md
@@ -131,6 +134,7 @@ tests/test_name_clearance.py
 tests/test_privacy_screen.py
 tests/test_public_projection.py
 tests/test_start_writwall.py
+tests/test_uninstall_writwall.py
 tests/test_wo_capability_wall.py
 writwall_cli/__init__.py
 writwall_cli/__main__.py

@@ -1,3 +1,5 @@
+> **Final recovery release: v0.13.0.** New adoption is discouraged. Existing users can leave Writwall without a work order or Doctrine migration. See [emergency uninstall](docs/uninstall.md) and [what failed](docs/recovery-postmortem.md). The earlier adoption guidance below is retained for reference.
+
 # Adopting Writwall
 
 Writwall is a document-controlled governance methodology with a self-hosting reference implementation and project-scaffolding toolkit. This is the complete on-ramp. If you do not yet know which agent to open, where it should run, or what to say first, begin with [`START-HERE.md`](START-HERE.md); it requires no prior Doctrine knowledge.
@@ -83,7 +85,7 @@ accepted compact `--brief` continuation and classified
 `--external-operator-task` operational preflight.
 
 ```text
-python -m pip install "https://github.com/HLLMR/writwall/archive/refs/tags/v0.12.0.zip"
+python -m pip install "https://github.com/HLLMR/writwall/archive/refs/tags/v0.13.0.zip"
 
 # Installed command
 writwall start --project-root /path/to/your-project
